@@ -52,6 +52,7 @@ from django.dispatch import receiver
 from django.conf import settings
 from datetime import datetime
 from model_utils import Choices
+from model_utils.models import TimeStampedModel
 from config_models.models import ConfigurationModel
 from xmodule_django.models import CourseKeyField, NoneToEmptyManager
 from util.milestones_helpers import fulfill_course_milestone
@@ -179,6 +180,83 @@ def certificate_status_for_student(student, course_id):
     return {'status': CertificateStatuses.unavailable, 'mode': GeneratedCertificate.MODES.honor}
 
 
+class ExampleCertificateSet(TimeStampedModel):
+    """TODO """
+
+    course_key = CourseKeyField(max_length=255)
+
+    @classmethod
+    def generate_test_certificates(cls, course_key):
+        """TODO """
+        # Submit certificates to the queue based on the course mode
+        for cert in cls._certificates_for_course(course_key):
+            cert.submit_to_queue()
+
+    @classmethod
+    def latest_status(cls, course_key):
+        """TODO """
+        # Retrieve the latest cert statuses and errors
+        # Returns a dictionary
+        pass
+
+    @classmethod
+    def _certificates_for_course(cls, course_key):
+        # TODO -- build certificates based on the course modes
+        pass
+
+
+class ExampleCertificate(TimeStampedModel):
+    """TODO """
+
+    example_cert_set = models.ForeignKey(ExampleCertificateSet)
+    description = models.CharField(max_length=255)
+
+    # Statuses
+    STATUS_STARTED = 'started'
+    STATUS_SUCCESS = 'success'
+    STATUS_ERROR = 'error'
+
+    # Inputs
+    key = models.CharField(max_length=255)
+    username = models.CharField(max_length=255)
+    name = models.CharField(max_length=255)
+    template_pdf = models.CharField(max_length=255)
+
+    # Outputs
+    status = models.CharField(max_length=255, default=STATUS_STARTED)
+    response_log = models.TextField(blank=True, default="")
+    download_url = models.CharField(max_length=255, blank=True, default="")
+
+    def submit_to_queue(self):
+        """TODO """
+        pass
+
+    def update_from_response(self, response):
+        """TODO """
+        pass
+
+
+class CertificateGenerationCourseSetting(TimeStampedModel):
+    """TODO """
+
+    course_key = CourseKeyField(max_length=255)
+    enabled = models.BooleanField()
+
+    @classmethod
+    def is_enabled(cls, course_key):
+        """TODO """
+        pass
+
+    @classmethod
+    def set_enabled(cls, course_key, is_enabled):
+        """TODO """
+        pass
+
+
 class CertificateGenerationConfiguration(ConfigurationModel):
-    """Configure certificate generation."""
+    """Configure certificate generation.
+
+    TODO: more description here.
+
+    """
     pass

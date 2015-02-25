@@ -3,7 +3,13 @@ Certificates API
 """
 
 import logging
-from certificates.models import CertificateStatuses as cert_status, certificate_status_for_student
+from certificates.models import (
+    CertificateStatuses as cert_status,
+    certificate_status_for_student,
+    CertificateGenerationCourseSetting,
+    CertificateGenerationConfiguration,
+    ExampleCertificateSet
+)
 from certificates.queue import XQueueCertInterface
 
 log = logging.getLogger("edx.certificate")
@@ -63,3 +69,25 @@ def certificate_downloadable_status(student, course_key):
         response_data['download_url'] = current_status['download_url']
 
     return response_data
+
+
+def cert_generation_enabled_for_course(course_key, is_enabled=None):
+    """TODO """
+    if is_enabled is not None:
+        CertificateGenerationCourseSetting.set_enabled(course_key, is_enabled)
+
+    return (
+        CertificateGenerationConfiguration.latest().enabled and
+        CertificateGenerationCourseSetting.is_enabled(course_key)
+    )
+
+
+def generate_example_certificates(course_key):
+    """TODO """
+    ExampleCertificateSet.generate_test_certificates(course_key)
+
+
+def example_certificates_status(course_key):
+    """TODO """
+    return ExampleCertificateSet.latest_status(course_key)
+
