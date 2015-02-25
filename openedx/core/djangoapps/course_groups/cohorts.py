@@ -187,23 +187,32 @@ def get_cohort(user, course_key, assign=True):
     Raises:
        ValueError if the CourseKey doesn't exist.
     """
+    # We cache the cohort on the user object so that we do not have to repeatedly
+    # query the database during a request. If the cached value exists, just return it.
+    if hasattr(user, '_cohort'):
+        return user._cohort
+
     # First check whether the course is cohorted (users shouldn't be in a cohort
     # in non-cohorted courses, but settings can change after course starts)
     course = courses.get_course(course_key)
     course_cohort_settings = get_course_cohort_settings(course.id)
 
     if not course_cohort_settings.is_cohorted:
-        return None
+        user._cohort = None
+        return user._cohort
 
     try:
-        return CourseUserGroup.objects.get(
+        user._cohort = CourseUserGroup.objects.get(
             course_id=course_key,
             group_type=CourseUserGroup.COHORT,
             users__id=user.id,
         )
+        return user._cohort
     except CourseUserGroup.DoesNotExist:
         # Didn't find the group.  We'll go on to create one if needed.
         if not assign:
+            # Do not cache the cohort here, because in the next call assign
+            # may be True, and we will have to assign the user a cohort.
             return None
 
     cohorts = get_course_cohorts(course, assignment_type=CourseCohort.RANDOM)
@@ -218,7 +227,8 @@ def get_cohort(user, course_key, assign=True):
 
     user.course_groups.add(cohort)
 
-    return cohort
+    user._cohort = cohort
+    return user._cohort
 
 
 def migrate_cohort_settings(course):
@@ -393,9 +403,17 @@ def get_group_info_for_cohort(cohort):
     If the cohort has not been linked to any group/partition, both values in the
     tuple will be None.
     """
-    res = CourseUserGroupPartitionGroup.objects.filter(course_user_group=cohort)
-    if len(res):
-        return res[0].group_id, res[0].partition_id
+    # We cache the partition group on the cohort object so that we do not have to repeatedly
+    # query the database during a request.
+    if not hasattr(cohort, '_partition_group'):
+        try:
+            cohort._partition_group = CourseUserGroupPartitionGroup.objects.get(course_user_group=cohort)
+        except CourseUserGroupPartitionGroup.DoesNotExist:
+            cohort._partition_group = None
+
+    if cohort._partition_group:
+        return cohort._partition_group.group_id, cohort._partition_group.partition_id
+
     return None, None
 
 
