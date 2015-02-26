@@ -28,6 +28,23 @@ from certificates.models import (
 LOGGER = logging.getLogger(__name__)
 
 
+class XQueueAddToQueueError(Exception):
+    """TODO """
+
+    def __init__(self, error_code, error_msg):
+        self.error_code = error_code
+        self.error_msg = error_msg
+
+    def __unicode__(self):
+        return (
+            u"Could not add certificate to the XQueue.  "
+            u"The error code was '{code}' and the message was '{msg}'."
+        ).format(
+            code=self.error_code,
+            msg=self.error_msg
+        )
+
+
 class XQueueCertInterface(object):
     """
     XQueueCertificateInterface provides an
@@ -352,30 +369,41 @@ class XQueueCertInterface(object):
             'name': example_cert.full_name,
             'template_pdf': example_cert.template
         }
-        callback_url = reverse('certificates.views.update_example_certificate')
-        error, msg = self._send_to_queue(contents, example_cert.key, callback_url=callback_url)
+        callback_url_path = reverse('certificates.views.update_example_certificate')
 
-        if error != 0:
-            example_cert.update_status(ExampleCertificate.STATUS_ERROR, error_reason=error)
+        try:
+            self._send_to_xqueue(
+                contents,
+                example_cert.key,
+                callback_url_path=callback_url_path
+            )
+        except XQueueAddToQueueError as exc:
+            example_cert.update_status(
+                ExampleCertificate.STATUS_ERROR,
+                error_reason=unicode(exc)
+            )
 
 
-    def _send_to_xqueue(self, contents, key, callback_url=None):
-        """Create a new task on the XQueue. """
+    def _send_to_xqueue(self, contents, key, callback_url_path=None):
+        """Create a new task on the XQueue.
 
-        if self.use_https:
-            proto = "https"
-        else:
-            proto = "http"
+        TODO: more detail here about the return values
+        """
 
-        if callback_url is None:
-            callback_url = '{0}://{1}/update_certificate?{2}'.format(proto, settings.SITE_NAME, key)
-        else:
-            callback_url = '{0}://{1}/{2}'.format(proto, settings.SITE_NAME)
+        callback_url = u'{protocol}://{base_url}{path}'.format(
+            protocol=("https" if self.use_https else "http"),
+            base_url=settings.SITE_NAME,
+            path=(
+                callback_url_path if callback_url_path is not None
+                else 'update_certificate?{key}'.format(key=key)
+            )
+        )
 
         xheader = make_xheader(callback_url, key, settings.CERT_QUEUE)
 
         (error, msg) = self.xqueue_interface.send_to_queue(
             header=xheader, body=json.dumps(contents))
         if error:
-            LOGGER.critical(u'Unable to add a request to the queue: %s %s', unicode(error), msg)
-            raise Exception('Unable to send queue message')
+            exc = XQueueAddToQueueError(error, msg)
+            LOGGER.critical(unicode(exc))
+            raise exc

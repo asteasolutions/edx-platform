@@ -13,8 +13,8 @@ class ExampleCertificateTest(TestCase):
 
     COURSE_KEY = CourseLocator(org='test', course='test', run='test')
 
-    TEMPLATE = 'test.pdf'
     DESCRIPTION = 'test'
+    TEMPLATE = 'test.pdf'
     DOWNLOAD_URL = 'http://www.example.com'
     ERROR_REASON = 'Kaboom!'
 
@@ -23,8 +23,8 @@ class ExampleCertificateTest(TestCase):
         self.cert_set = ExampleCertificateSet.objects.create(course_key=self.COURSE_KEY)
         self.cert = ExampleCertificate.objects.create(
             example_cert_set=self.cert_set,
-            template=self.TEMPLATE,
             description=self.DESCRIPTION
+            template=self.TEMPLATE,
         )
 
     def test_update_status_success(self):
