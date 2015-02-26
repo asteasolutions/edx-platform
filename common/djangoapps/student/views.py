@@ -2059,6 +2059,7 @@ def confirm_email_change(request, key):  # pylint: disable=unused-argument
         raise
 
 
+# TODO: DELETE AFTER NEW ACCOUNT PAGE DONE
 @ensure_csrf_cookie
 @require_POST
 def change_name_request(request):
@@ -2087,45 +2088,7 @@ def change_name_request(request):
     return JsonResponse({"success": True})
 
 
-@ensure_csrf_cookie
-def pending_name_changes(request):
-    """ Web page which allows staff to approve or reject name changes. """
-    if not request.user.is_staff:
-        raise Http404
-
-    students = []
-    for change in PendingNameChange.objects.all():
-        profile = UserProfile.objects.get(user=change.user)
-        students.append({
-            "new_name": change.new_name,
-            "rationale": change.rationale,
-            "old_name": profile.name,
-            "email": change.user.email,
-            "uid": change.user.id,
-            "cid": change.id,
-        })
-
-    return render_to_response("name_changes.html", {"students": students})
-
-
-@ensure_csrf_cookie
-def reject_name_change(request):
-    """ JSON: Name change process. Course staff clicks 'reject' on a given name change """
-    if not request.user.is_staff:
-        raise Http404
-
-    try:
-        pnc = PendingNameChange.objects.get(id=int(request.POST['id']))
-    except PendingNameChange.DoesNotExist:
-        return JsonResponse({
-            "success": False,
-            "error": _('Invalid ID'),
-        })  # TODO: this should be status code 400  # pylint: disable=fixme
-
-    pnc.delete()
-    return JsonResponse({"success": True})
-
-
+# TODO: DELETE AFTER NEW ACCOUNT PAGE DONE
 def accept_name_change_by_id(uid):
     """
     Accepts the pending name change request for the user represented
@@ -2154,20 +2117,6 @@ def accept_name_change_by_id(uid):
     pnc.delete()
 
     return JsonResponse({"success": True})
-
-
-@ensure_csrf_cookie
-def accept_name_change(request):
-    """ JSON: Name change process. Course staff clicks 'accept' on a given name change
-
-    We used this during the prototype but now we simply record name changes instead
-    of manually approving them. Still keeping this around in case we want to go
-    back to this approval method.
-    """
-    if not request.user.is_staff:
-        raise Http404
-
-    return accept_name_change_by_id(int(request.POST['id']))
 
 
 @require_POST
@@ -2202,3 +2151,4 @@ def change_email_settings(request):
         track.views.server_track(request, "change-email-settings", {"receive_emails": "no", "course": course_id}, page='dashboard')
 
     return JsonResponse({"success": True})
+

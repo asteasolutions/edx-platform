@@ -7,6 +7,8 @@ https://openedx.atlassian.net/wiki/display/TNL/User+API
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
+import datetime
+from pytz import UTC
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -37,7 +39,7 @@ class AccountView(APIView):
 
             * username: username associated with the account (not editable)
 
-            * name: full name of the user (not editable through this API)
+            * name: full name of the user (must be at least two characters)
 
             * email: email for the user (not editable through this API)
 
@@ -113,6 +115,10 @@ class AccountView(APIView):
             response_data = {"field_errors": field_errors}
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
+        old_name = None
+        if "name" in update:
+            old_name = existing_user_profile.name
+
         user_serializer = AccountUserSerializer(existing_user, data=update)
         legacy_profile_serializer = AccountLegacyProfileSerializer(existing_user_profile, data=update)
 
@@ -121,6 +127,20 @@ class AccountView(APIView):
             if validation_errors:
                 return Response(validation_errors, status=status.HTTP_400_BAD_REQUEST)
             serializer.save()
+
+        # If the name was changed, store information about the change operation. This is outside of the
+        # serializer so that we can store who requested the change.
+        if old_name:
+            meta = existing_user_profile.get_meta()
+            if 'old_names' not in meta:
+                meta['old_names'] = []
+            meta['old_names'].append([
+                old_name,
+                "Name change requested through account API by {0}".format(request.user.username),
+                datetime.datetime.now(UTC).isoformat()
+            ])
+            existing_user_profile.set_meta(meta)
+            existing_user_profile.save()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
