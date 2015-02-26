@@ -4,8 +4,9 @@ import json
 import logging
 
 from django.contrib.auth.models import User
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 from capa.xqueue_interface import XQUEUE_METRIC_NAME
 from certificates.models import (
@@ -16,7 +17,7 @@ from certificates.models import (
 )
 from certificates.queue import XQueueCertInterface
 from xmodule.modulestore.django import modulestore
-from util.json_request import JsonResponse
+from util.json_request import JsonResponse, JsonResponseBadRequest
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
 
 logger = logging.getLogger(__name__)
@@ -129,26 +130,35 @@ def update_certificate(request):
 
 
 @csrf_exempt
+@require_POST
 def update_example_certificate(request):
     """TODO """
-    # TODO
-    xqueue_body = json.loads(request.POST.get('xqueue_body'))
-    xqueue_header = json.loads(request.POST.get('xqueue_header'))
+    if 'xqueue_body' not in request.POST:
+        return JsonResponseBadRequest("TODO")
+
+    if 'xqueue_header' not in request.POST:
+        return JsonResponseBadRequest("TODO")
+
+    try:
+        xqueue_body = json.loads(request.POST['xqueue_body'])
+        xqueue_header = json.loads(request.POST['xqueue_header'])
+    except ValueError:
+        return JsonResponseBadRequest("TODO")
 
     try:
         key = xqueue_header.get('lms_key')
         cert = ExampleCertificate.objects.get(key=key)
     except ExampleCertificate.DoesNotExist:
-        return JsonResponse({
-            'return_code': 1,
-            'content': 'TODO'
-        })
+        raise Http404
 
     if 'error' in xqueue_body:
         error_reason = xqueue_body.get('error_reason')
         cert.update_status(ExampleCertificate.STATUS_ERROR, error_reason=error_reason)
     else:
         download_url = xqueue_body.get('url')
-        cert.update_status(ExampleCertificate.STATUS_SUCCESS, download_url=download_url)
+        if download_url is None:
+            return JsonResponseBadRequest("TODO")
+        else:
+            cert.update_status(ExampleCertificate.STATUS_SUCCESS, download_url=download_url)
 
     return JsonResponse({'return_code': 0})

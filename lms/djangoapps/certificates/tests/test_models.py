@@ -23,8 +23,8 @@ class ExampleCertificateTest(TestCase):
         self.cert_set = ExampleCertificateSet.objects.create(course_key=self.COURSE_KEY)
         self.cert = ExampleCertificate.objects.create(
             example_cert_set=self.cert_set,
-            description=self.DESCRIPTION
-            template=self.TEMPLATE,
+            description=self.DESCRIPTION,
+            template=self.TEMPLATE
         )
 
     def test_update_status_success(self):
@@ -58,3 +58,12 @@ class ExampleCertificateTest(TestCase):
     def test_update_status_invalid(self):
         with self.assertRaisesRegexp(ValueError, 'status'):
             self.cert.update_status('invalid')
+
+    def test_latest_status_unavailable(self):
+        # Delete any existing statuses
+        ExampleCertificateSet.objects.all().delete()
+
+        # Verify that the "latest" status is None
+        result = ExampleCertificateSet.latest_status(self.COURSE_KEY)
+        self.assertIs(result, None)
+
