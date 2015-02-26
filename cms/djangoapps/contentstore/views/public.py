@@ -56,7 +56,7 @@ def login_page(request):
     return render_to_response(
         'login.html',
         {
-            'csrf': csrf_token,
+            'csrf': unicode(csrf_token),
             'forgot_password_link': "//{base}/login#forgot-password-modal".format(base=settings.LMS_BASE),
             'platform_name': microsite.get_value('platform_name', settings.PLATFORM_NAME),
         }
