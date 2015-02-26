@@ -13,7 +13,7 @@ class Migration(DataMigration):
         old_autocommit = get_autocommit()
 
         try:
-            set_autocommit(True):  # get_or_create uses transaction.atomic, which doesn't work when autocommit is False
+            set_autocommit(True)  # get_or_create uses transaction.atomic, which doesn't work when autocommit is False
             for country_code, __ in list(countries):
                 orm.Country.objects.get_or_create(country=country_code)
         finally:
