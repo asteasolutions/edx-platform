@@ -66,6 +66,24 @@ class UpdateExampleCertificateViewTest(TestCase):
         response = self.client.post(self.url, data=payload)
         self.assertEqual(response.status_code, 400)
 
+    def test_update_example_certificate_missing_download_url(self):
+        payload = {
+            'xqueue_header': json.dumps({
+                'lms_key': self.cert.key
+            }),
+            'xqueue_body': json.dumps({})
+        }
+        response = self.client.post(self.url, data=payload)
+        self.assertEqual(response.status_code, 400)
+
+    def test_update_example_cetificate_non_json_param(self):
+        payload = {
+            'xqueue_header': '{/invalid',
+            'xqueue_body': '{/invalid'
+        }
+        response = self.client.post(self.url, data=payload)
+        self.assertEqual(response.status_code, 400)
+
     def test_unsupported_http_method(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 405)
