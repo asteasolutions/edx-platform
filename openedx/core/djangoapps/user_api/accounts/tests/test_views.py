@@ -266,19 +266,24 @@ class TestAccountAPI(APITestCase):
         verify_change_info(name_change_info[0], old_name, self.user.username, "Donald Duck",)
         verify_change_info(name_change_info[1], "Mickey Mouse", self.staff_user.username, "Donald Duck")
 
-    def test_patch_email(self):
+    @ddt.data(
+        ("client", "user"),
+        ("staff_client", "staff_user"),
+    )
+    @ddt.unpack
+    def test_patch_email(self, api_client, user):
         """
-        Test that the user can request an email change through the accounts API. Extensive testing of the
-        helper method used (do_email_change_request) exists in the package with the code. Here just do
-        minimal smoke testing.
+        Test that the user (and anyone with an is_staff account) can request an email change through the accounts API.
+        Full testing of the helper method used (do_email_change_request) exists in the package with the code.
+        Here just do minimal smoke testing.
         """
-        self.client.login(username=self.user.username, password=TEST_PASSWORD)
+        client = self.login_client(api_client, user)
         old_email = self.user.email
         new_email = "newemail@example.com"
-        self.send_patch(self.client, {"email": new_email, "goals": "change my email"})
+        self.send_patch(client, {"email": new_email, "goals": "change my email"})
 
         # Since request is multi-step, the email won't change on GET immediately (though goals will update).
-        get_response = self.send_get(self.client)
+        get_response = self.send_get(client)
         self.assertEqual(old_email, get_response.data["email"])
         self.assertEqual("change my email", get_response.data["goals"])
 
@@ -292,11 +297,11 @@ class TestAccountAPI(APITestCase):
         )
         response = self.client.post(confirm_change_url)
         self.assertEqual(200, response.status_code)
-        get_response = self.send_get(self.client)
+        get_response = self.send_get(client)
         self.assertEqual(new_email, get_response.data["email"])
 
         # Finally, try changing to an invalid email just to make sure error messages are appropriately returned.
-        error_response = self.send_patch(self.client, {"email": "not_an_email"}, expected_status=400)
+        error_response = self.send_patch(client, {"email": "not_an_email"}, expected_status=400)
         self.assertEqual(
             "Error thrown from do_email_change_request: 'Valid e-mail address required.'",
             error_response.data["developer_message"]
