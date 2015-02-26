@@ -231,7 +231,8 @@ class ExampleCertificateSet(TimeStampedModel):
 
     def __iter__(self):
         """TODO """
-        for cert in ExampleCertificate.objects.filter(example_cert_set=self):
+        queryset = (ExampleCertificate.objects ).select_related('example_cert_set').filter(example_cert_set=self)
+        for cert in queryset:
             yield cert
 
     @staticmethod
@@ -267,13 +268,14 @@ class ExampleCertificate(TimeStampedModel):
     username = models.CharField(max_length=255, default=EXAMPLE_USERNAME)
     full_name = models.CharField(max_length=255, default=EXAMPLE_FULL_NAME)
     template = models.CharField(max_length=255)
+    grade = models.CharField(max_length=255)
 
     # Outputs
     status = models.CharField(max_length=255, default=STATUS_STARTED)
     error_response = models.TextField(null=True, default=None)
     download_url = models.CharField(max_length=255, null=True, default=None)
 
-    def update_from_response(self, status, error_response=None, download_url=None):
+    def update_status(self, status, error_response=None, download_url=None):
         """TODO """
         if status not in [self.STATUS_SUCCESS, self.STATUS_ERROR]:
             raise ValueError('TODO')
@@ -287,6 +289,11 @@ class ExampleCertificate(TimeStampedModel):
             self.download_url = download_url
 
         self.save()
+
+    @property
+    def course_key(self):
+        """TODO """
+        return self.example_cert_set.course_key
 
 
 class CertificateGenerationCourseSetting(TimeStampedModel):

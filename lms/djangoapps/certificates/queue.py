@@ -1,22 +1,28 @@
-from certificates.models import GeneratedCertificate
-from certificates.models import certificate_status_for_student
-from certificates.models import CertificateStatuses as status
-from certificates.models import CertificateWhitelist
-
-from courseware import grades, courses
-from django.test.client import RequestFactory
-from capa.xqueue_interface import XQueueInterface
-from capa.xqueue_interface import make_xheader, make_hashkey
-from django.conf import settings
-from requests.auth import HTTPBasicAuth
-from student.models import UserProfile, CourseEnrollment
-from verify_student.models import SoftwareSecurePhotoVerification
-
 import json
 import random
 import logging
 import lxml.html
 from lxml.etree import XMLSyntaxError, ParserError
+
+from django.test.client import RequestFactory
+from django.conf import settings
+from django.core.urlresolvers import reverse
+from requests.auth import HTTPBasicAuth
+
+from courseware import grades
+from xmodule.modulestore.django import modulestore
+from capa.xqueue_interface import XQueueInterface
+from capa.xqueue_interface import make_xheader, make_hashkey
+from student.models import UserProfile, CourseEnrollment
+from verify_student.models import SoftwareSecurePhotoVerification
+
+from certificates.models import (
+    GeneratedCertificate,
+    certificate_status_for_student,
+    CertificateStatuses as status,
+    CertificateWhitelist,
+    ExampleCertificate
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -205,7 +211,7 @@ class XQueueCertInterface(object):
             # re-use the course passed in optionally so we don't have to re-fetch everything
             # for every student
             if course is None:
-                course = courses.get_course_by_id(course_id)
+                course = modulestore().get_course(course_key, depth=0)
             profile = UserProfile.objects.get(user=student)
             profile_name = profile.name
 
@@ -213,7 +219,7 @@ class XQueueCertInterface(object):
             self.request.user = student
             self.request.session = {}
 
-            course_name = course.display_name or course_id.to_deprecated_string()
+            course_name = course.display_name or unicode(course_id)
             is_whitelisted = self.whitelist.filter(user=student, course_id=course_id, whitelist=True).exists()
             grade = grades.grade(student, self.request, course)
             enrollment_mode, __ = CourseEnrollment.enrollment_mode_for_user(student, course_id)
@@ -297,7 +303,7 @@ class XQueueCertInterface(object):
                     contents = {
                         'action': 'create',
                         'username': student.username,
-                        'course_id': course_id.to_deprecated_string(),
+                        'course_id': unicode(course_id),
                         'course_name': course_name,
                         'name': profile_name,
                         'grade': grade_contents,
@@ -339,9 +345,21 @@ class XQueueCertInterface(object):
 
     def add_example_cert(self, example_cert):
         """TODO """
-        pass
+        contents = {
+            'action': 'create',
+            'username': example_cert.username,
+            'course_id': unicode(example_cert.course_key),
+            'name': example_cert.full_name,
+            'template_pdf': example_cert.template
+        }
+        callback_url = reverse('certificates.views.update_example_certificate')
+        error, msg = self._send_to_queue(contents, example_cert.key, callback_url=callback_url)
 
-    def _send_to_xqueue(self, contents, key):
+        if error != 0:
+            example_cert.update_status(ExampleCertificate.STATUS_ERROR, error_response=error)
+
+
+    def _send_to_xqueue(self, contents, key, callback_url=None):
         """Create a new task on the XQueue. """
 
         if self.use_https:
@@ -349,9 +367,12 @@ class XQueueCertInterface(object):
         else:
             proto = "http"
 
-        xheader = make_xheader(
-            '{0}://{1}/update_certificate?{2}'.format(
-                proto, settings.SITE_NAME, key), key, settings.CERT_QUEUE)
+        if callback_url is None:
+            callback_url = '{0}://{1}/update_certificate?{2}'.format(proto, settings.SITE_NAME, key)
+        else:
+            callback_url = '{0}://{1}/{2}'.format(proto, settings.SITE_NAME)
+
+        xheader = make_xheader(callback_url, key, settings.CERT_QUEUE)
 
         (error, msg) = self.xqueue_interface.send_to_queue(
             header=xheader, body=json.dumps(contents))
