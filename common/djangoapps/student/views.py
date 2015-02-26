@@ -18,7 +18,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import password_reset_confirm
 from django.contrib import messages
 from django.core.context_processors import csrf
-from django.core.mail import send_mail
+from django.core import mail
 from django.core.urlresolvers import reverse
 from django.core.validators import validate_email, validate_slug, ValidationError
 from django.db import IntegrityError, transaction
@@ -1546,7 +1546,7 @@ def create_account_with_params(request, params):
                 dest_addr = settings.FEATURES['REROUTE_ACTIVATION_EMAIL']
                 message = ("Activation for %s (%s): %s\n" % (user, user.email, profile.name) +
                            '-' * 80 + '\n\n' + message)
-                send_mail(subject, message, from_address, [dest_addr], fail_silently=False)
+                mail.send_mail(subject, message, from_address, [dest_addr], fail_silently=False)
             else:
                 user.email_user(subject, message, from_address)
         except Exception:  # pylint: disable=broad-except
@@ -1916,6 +1916,7 @@ def reactivation_email_for_user(user):
     return JsonResponse({"success": True})
 
 
+# TODO: delete this method and redirect unit tests to do_email_change_request after accounts page work is done.
 @ensure_csrf_cookie
 def change_email_request(request):
     """ AJAX call from the profile page. User wants a new e-mail.
@@ -1934,37 +1935,43 @@ def change_email_request(request):
 
     new_email = request.POST['new_email']
     try:
-        validate_email(new_email)
-    except ValidationError:
+        do_email_change_request(request.user, new_email)
+    except ValueError as err:
         return JsonResponse({
             "success": False,
-            "error": _('Valid e-mail address required.'),
-        })  # TODO: this should be status code 400  # pylint: disable=fixme
+            "error": err.message,
+        })
+    return JsonResponse({"success": True})
+
+
+def do_email_change_request(user, new_email, activation_key=uuid.uuid4().hex):
+    """
+    Given a new email for a user, does some basic verification of the new address and sends an activation message
+    to the new address. If any issues are encountered with verification or sending the message, a ValueError will
+    be thrown.
+    """
+    try:
+        validate_email(new_email)
+    except ValidationError:
+        raise ValueError(_('Valid e-mail address required.'))
+
+    if new_email == user.email:
+        raise ValueError(_('Old email is the same as the new email.'))
 
     if User.objects.filter(email=new_email).count() != 0:
         ## CRITICAL TODO: Handle case sensitivity for e-mails
-        return JsonResponse({
-            "success": False,
-            "error": _('An account with this e-mail already exists.'),
-        })  # TODO: this should be status code 400  # pylint: disable=fixme
+        raise ValueError(_('An account with this e-mail already exists.'))
 
-    pec_list = PendingEmailChange.objects.filter(user=request.user)
+    pec_list = PendingEmailChange.objects.filter(user=user)
     if len(pec_list) == 0:
         pec = PendingEmailChange()
         pec.user = user
     else:
         pec = pec_list[0]
 
-    pec.new_email = request.POST['new_email']
-    pec.activation_key = uuid.uuid4().hex
+    pec.new_email = new_email
+    pec.activation_key = activation_key
     pec.save()
-
-    if pec.new_email == user.email:
-        pec.delete()
-        return JsonResponse({
-            "success": False,
-            "error": _('Old email is the same as the new email.'),
-        })  # TODO: this should be status code 400  # pylint: disable=fixme
 
     context = {
         'key': pec.activation_key,
@@ -1982,15 +1989,10 @@ def change_email_request(request):
         settings.DEFAULT_FROM_EMAIL
     )
     try:
-        send_mail(subject, message, from_address, [pec.new_email])
+        mail.send_mail(subject, message, from_address, [pec.new_email])
     except Exception:  # pylint: disable=broad-except
         log.error(u'Unable to send email activation link to user from "%s"', from_address, exc_info=True)
-        return JsonResponse({
-            "success": False,
-            "error": _('Unable to send email activation link. Please try again later.')
-        })
-
-    return JsonResponse({"success": True})
+        raise ValueError(_('Unable to send email activation link. Please try again later.'))
 
 
 @ensure_csrf_cookie
@@ -2151,4 +2153,3 @@ def change_email_settings(request):
         track.views.server_track(request, "change-email-settings", {"receive_emails": "no", "course": course_id}, page='dashboard')
 
     return JsonResponse({"success": True})
-

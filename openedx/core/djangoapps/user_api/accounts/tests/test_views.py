@@ -9,7 +9,8 @@ from django.conf import settings
 from rest_framework.test import APITestCase, APIClient
 
 from student.tests.factories import UserFactory
-from student.models import UserProfile
+from student.models import UserProfile, PendingEmailChange
+from student.views import confirm_email_change
 
 TEST_PASSWORD = "test"
 
@@ -189,7 +190,7 @@ class TestAccountAPI(APITestCase):
                 "Field '{0}' cannot be edited.".format(field_name), data["field_errors"][field_name]["user_message"]
             )
 
-        for field_name in ["username", "email", "date_joined"]:
+        for field_name in ["username", "date_joined"]:
             response = self.send_patch(client, {field_name: "will_error", "gender": "f"}, expected_status=400)
             verify_error_response(field_name, response.data)
 
@@ -198,10 +199,10 @@ class TestAccountAPI(APITestCase):
         self.assertEqual("m", response.data["gender"])
 
         # Test error message with multiple read-only items
-        response = self.send_patch(client, {"username": "will_error", "email": "xx"}, expected_status=400)
+        response = self.send_patch(client, {"username": "will_error", "date_joined": "xx"}, expected_status=400)
         self.assertEqual(2, len(response.data["field_errors"]))
         verify_error_response("username", response.data)
-        verify_error_response("email", response.data)
+        verify_error_response("date_joined", response.data)
 
     def test_patch_bad_content_type(self):
         """
@@ -264,6 +265,43 @@ class TestAccountAPI(APITestCase):
         name_change_info = get_name_change_info(2)
         verify_change_info(name_change_info[0], old_name, self.user.username, "Donald Duck",)
         verify_change_info(name_change_info[1], "Mickey Mouse", self.staff_user.username, "Donald Duck")
+
+    def test_patch_email(self):
+        """
+        Test that the user can request an email change through the accounts API. Extensive testing of the
+        helper method used (do_email_change_request) exists in the package with the code. Here just do
+        minimal smoke testing.
+        """
+        self.client.login(username=self.user.username, password=TEST_PASSWORD)
+        old_email = self.user.email
+        new_email = "newemail@example.com"
+        self.send_patch(self.client, {"email": new_email, "goals": "change my email"})
+
+        # Since request is multi-step, the email won't change on GET immediately (though goals will update).
+        get_response = self.send_get(self.client)
+        self.assertEqual(old_email, get_response.data["email"])
+        self.assertEqual("change my email", get_response.data["goals"])
+
+        # Now call the method that will be invoked with the user clicks the activation key in the received email.
+        # First we must get the activation key that was sent.
+        pending_change = PendingEmailChange.objects.filter(user=self.user)
+        self.assertEqual(1, len(pending_change))
+        activation_key = pending_change[0].activation_key
+        confirm_change_url = reverse(
+            "student.views.confirm_email_change", kwargs={'key': activation_key}
+        )
+        response = self.client.post(confirm_change_url)
+        self.assertEqual(200, response.status_code)
+        get_response = self.send_get(self.client)
+        self.assertEqual(new_email, get_response.data["email"])
+
+        # Finally, try changing to an invalid email just to make sure error messages are appropriately returned.
+        error_response = self.send_patch(self.client, {"email": "not_an_email"}, expected_status=400)
+        self.assertEqual(
+            "Error thrown from do_email_change_request: 'Valid e-mail address required.'",
+            error_response.data["developer_message"]
+        )
+        self.assertEqual("Valid e-mail address required.", error_response.data["user_message"])
 
     def login_client(self, api_client, user):
         """Helper method for getting the client and user and logging in. Returns client. """
