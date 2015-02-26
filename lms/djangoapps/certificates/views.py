@@ -145,8 +145,8 @@ def update_example_certificate(request):
         })
 
     if 'error' in xqueue_body:
-        error_response = xqueue_body.get('error_reason')
-        cert.update_status(ExampleCertificate.STATUS_ERROR, error_response=error_response)
+        error_reason = xqueue_body.get('error_reason')
+        cert.update_status(ExampleCertificate.STATUS_ERROR, error_reason=error_reason)
     else:
         download_url = xqueue_body.get('url')
         cert.update_status(ExampleCertificate.STATUS_SUCCESS, download_url=download_url)

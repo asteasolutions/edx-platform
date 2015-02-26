@@ -219,15 +219,7 @@ class ExampleCertificateSet(TimeStampedModel):
             return None
 
         queryset = ExampleCertificate.objects.filter(example_cert_set=latest).order_by('-created')
-        return [
-            {
-                'description': cert.description,
-                'status': cert.status,
-                'error_response': cert.error_response,
-                'download_url': cert.download_url
-            }
-            for cert in queryset
-        ]
+        return [cert.status_dict for cert in queryset]
 
     def __iter__(self):
         """TODO """
@@ -272,23 +264,34 @@ class ExampleCertificate(TimeStampedModel):
 
     # Outputs
     status = models.CharField(max_length=255, default=STATUS_STARTED)
-    error_response = models.TextField(null=True, default=None)
+    error_reason = models.TextField(null=True, default=None)
     download_url = models.CharField(max_length=255, null=True, default=None)
 
-    def update_status(self, status, error_response=None, download_url=None):
+    def update_status(self, status, error_reason=None, download_url=None):
         """TODO """
         if status not in [self.STATUS_SUCCESS, self.STATUS_ERROR]:
             raise ValueError('TODO')
 
         self.status = status
 
-        if error_response:
-            self.error_response = error_response
+        if status == self.STATUS_ERROR and error_reason:
+            self.error_reason = error_reason
 
-        if download_url:
+        if status == self.STATUS_SUCCESS and download_url:
             self.download_url = download_url
 
         self.save()
+
+    @property
+    def status_dict(self):
+        """TODO """
+        return {
+            'description': self.description,
+            'status': self.status,
+            'error_reason': self.error_reason,
+            'download_url': self.download_url
+        }
+
 
     @property
     def course_key(self):

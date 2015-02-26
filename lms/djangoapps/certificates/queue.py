@@ -356,7 +356,7 @@ class XQueueCertInterface(object):
         error, msg = self._send_to_queue(contents, example_cert.key, callback_url=callback_url)
 
         if error != 0:
-            example_cert.update_status(ExampleCertificate.STATUS_ERROR, error_response=error)
+            example_cert.update_status(ExampleCertificate.STATUS_ERROR, error_reason=error)
 
 
     def _send_to_xqueue(self, contents, key, callback_url=None):

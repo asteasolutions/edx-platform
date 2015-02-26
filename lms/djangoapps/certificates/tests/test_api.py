@@ -197,5 +197,9 @@ class CertificateGenerationEnabledTest(TestCase):
 
 class GenerateExampleCertificatesTest(TestCase):
     """TODO """
-    pass
 
+    def test_generate_example_certs(self):
+        pass
+
+    def test_generate_example_certs_with_verified_mode(self):
+        pass
