@@ -1,16 +1,21 @@
 """
 Tests for the certificates api and helper function.
 """
-from django.test import RequestFactory
+import ddt
+
+from django.test import TestCase, RequestFactory
 from django.test.utils import override_settings
 from mock import patch, Mock
+
+from opaque_keys.edx.locator import CourseLocator
 from xmodule.modulestore.tests.factories import CourseFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
-from certificates.api import certificate_downloadable_status, generate_user_certificates
 from student.models import CourseEnrollment
-
 from student.tests.factories import UserFactory
-from certificates.models import CertificateStatuses
+from config_models.models import cache
+
+from certificates import api as certs_api
+from certificates.models import (CertificateStatuses, CertificateGenerationConfiguration)
 from certificates.tests.factories import GeneratedCertificateFactory
 
 
@@ -44,7 +49,7 @@ class CertificateDownloadableStatusTests(ModuleStoreTestCase):
         )
 
         self.assertEqual(
-            certificate_downloadable_status(self.student, self.course.id),
+            certs_api.certificate_downloadable_status(self.student, self.course.id),
             {
                 'is_downloadable': False,
                 'is_generating': True,
@@ -65,7 +70,7 @@ class CertificateDownloadableStatusTests(ModuleStoreTestCase):
         )
 
         self.assertEqual(
-            certificate_downloadable_status(self.student, self.course.id),
+            certs_api.certificate_downloadable_status(self.student, self.course.id),
             {
                 'is_downloadable': False,
                 'is_generating': True,
@@ -78,7 +83,7 @@ class CertificateDownloadableStatusTests(ModuleStoreTestCase):
         in case of no certificate means is_generating is False and is_downloadable is False
         """
         self.assertEqual(
-            certificate_downloadable_status(self.student_no_cert, self.course.id),
+            certs_api.certificate_downloadable_status(self.student_no_cert, self.course.id),
             {
                 'is_downloadable': False,
                 'is_generating': False,
@@ -101,7 +106,7 @@ class CertificateDownloadableStatusTests(ModuleStoreTestCase):
         )
 
         self.assertEqual(
-            certificate_downloadable_status(self.student, self.course.id),
+            certs_api.certificate_downloadable_status(self.student, self.course.id),
             {
                 'is_downloadable': True,
                 'is_generating': False,
@@ -138,4 +143,59 @@ class GenerateUserCertificatesTest(ModuleStoreTestCase):
         """
         with patch('capa.xqueue_interface.XQueueInterface.send_to_queue') as mock_send_to_queue:
             mock_send_to_queue.return_value = (0, "Successfully queued")
-            self.assertEqual(generate_user_certificates(self.student, self.course), 'generating')
+            result = certs_api.generate_user_certificates(self.student, self.course)
+            self.assertEqual(result, 'generating')
+
+
+@ddt.ddt
+class CertificateGenerationEnabledTest(TestCase):
+    """TODO """
+
+    COURSE_KEY = CourseLocator(org='test', course='test', run='test')
+
+    def setUp(self):
+        super(CertificateGenerationEnabledTest, self).setUp()
+        # TODO -- explain this
+        cache.clear()
+
+    @ddt.data(
+        (None, None, False),
+        (False, None, False),
+        (False, True, False),
+        (True, None, False),
+        (True, False, False),
+        (True, True, True)
+    )
+    @ddt.unpack
+    def test_cert_generation_enabled(self, is_feature_enabled, is_course_enabled, expect_enabled):
+        if is_feature_enabled is not None:
+            CertificateGenerationConfiguration.objects.create(enabled=is_feature_enabled)
+
+        if is_course_enabled is not None:
+            certs_api.cert_generation_enabled_for_course(
+                self.COURSE_KEY, is_enabled=is_course_enabled
+            )
+
+        self._assert_enabled_for_course(self.COURSE_KEY, expect_enabled)
+
+    def test_latest_setting_used(self):
+        # Enable the feature
+        CertificateGenerationConfiguration.objects.create(enabled=True)
+
+        # Enable for the course
+        certs_api.cert_generation_enabled_for_course(self.COURSE_KEY, is_enabled=True)
+        self._assert_enabled_for_course(self.COURSE_KEY, True)
+
+        # Disable for the course
+        certs_api.cert_generation_enabled_for_course(self.COURSE_KEY, is_enabled=False)
+        self._assert_enabled_for_course(self.COURSE_KEY, False)
+
+    def _assert_enabled_for_course(self, course_key, expect_enabled):
+        actual_enabled = certs_api.cert_generation_enabled_for_course(self.COURSE_KEY)
+        self.assertEqual(expect_enabled, actual_enabled)
+
+
+class GenerateExampleCertificatesTest(TestCase):
+    """TODO """
+    pass
+

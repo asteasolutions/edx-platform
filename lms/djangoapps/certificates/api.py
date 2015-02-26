@@ -77,7 +77,7 @@ def cert_generation_enabled_for_course(course_key, is_enabled=None):
         CertificateGenerationCourseSetting.set_enabled_for_course(course_key, is_enabled)
 
     return (
-        CertificateGenerationConfiguration.latest().enabled and
+        CertificateGenerationConfiguration.current().enabled and
         CertificateGenerationCourseSetting.is_enabled_for_course(course_key)
     )
 
