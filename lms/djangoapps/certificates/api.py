@@ -84,7 +84,10 @@ def cert_generation_enabled_for_course(course_key, is_enabled=None):
 
 def generate_example_certificates(course_key):
     """TODO """
-    ExampleCertificateSet.generate_test_certificates(course_key)
+    xqueue = XQueueCertInterface()
+    for cert in ExampleCertificateSet.create_example_set(course_key):
+        # TODO -- error handling here
+        xqueue.add_example_cert(cert)
 
 
 def example_certificates_status(course_key):

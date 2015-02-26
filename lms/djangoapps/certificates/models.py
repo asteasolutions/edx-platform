@@ -49,7 +49,7 @@ from datetime import datetime
 import uuid
 
 from django.contrib.auth.models import User
-from django.db import models
+from django.db import models, transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
@@ -58,6 +58,7 @@ from model_utils.models import TimeStampedModel
 from config_models.models import ConfigurationModel
 from xmodule_django.models import CourseKeyField, NoneToEmptyManager
 from util.milestones_helpers import fulfill_course_milestone
+from course_modes.models import CourseMode
 
 
 class CertificateStatuses(object):
@@ -185,17 +186,27 @@ def certificate_status_for_student(student, course_id):
 class ExampleCertificateSet(TimeStampedModel):
     """TODO """
 
-    course_key = CourseKeyField(max_length=255)
+    course_key = CourseKeyField(max_length=255, db_index=True)
 
     class Meta:
         get_latest_by = 'created'
 
     @classmethod
-    def generate_test_certificates(cls, course_key):
+    @transaction.commit_on_success
+    def create_example_set(cls, course_key):
         """TODO """
-        # Submit certificates to the queue based on the course mode
-        for cert in cls._certificates_for_course(course_key):
-            cert.submit_to_queue()
+        cert_set = cls.objects.create(course_key=course_key)
+
+        ExampleCertificate.objects.bulk_create([
+            ExampleCertificate(
+                example_cert_set=cert_set,
+                description=mode.slug,
+                template=cls._template_for_mode(mode.slug, course_key)
+            )
+            for mode in CourseMode.modes_for_course(course_key)
+        ])
+
+        return cert_set
 
     @classmethod
     def latest_status(cls, course_key):
@@ -218,21 +229,10 @@ class ExampleCertificateSet(TimeStampedModel):
             for cert in queryset
         ]
 
-    @classmethod
-    def _certificates_for_course(cls, course_key):
-        # TODO -- build certificates based on the course modes
-        templates = [
-            cls._template_for_mode(mode.slug, course_key)
-            for mode in CourseMode.modes_for_course(course_key)
-        ]
-
-        return [
-            ExampleCertificate.objects.create(
-                description=mode.slug,
-                template=cls._template_for_mode(mode.slug, course_key)
-            )
-            for mode in CourseMode.modes_for_course(course_key)
-        ]
+    def __iter__(self):
+        """TODO """
+        for cert in ExampleCertificate.objects.filter(example_cert_set=self):
+            yield cert
 
     @staticmethod
     def _template_for_mode(mode_slug, course_key):
@@ -242,7 +242,6 @@ class ExampleCertificateSet(TimeStampedModel):
             if mode_slug == 'verified'
             else u"certificate-template-{key.org}-{key.course}.pdf".format(key=course_key)
         )
-
 
 class ExampleCertificate(TimeStampedModel):
     """TODO """
@@ -262,7 +261,8 @@ class ExampleCertificate(TimeStampedModel):
     # Inputs
     key = models.CharField(
         max_length=255,
-        default=(lambda: uuid.uuid4().hex)
+        default=(lambda: uuid.uuid4().hex),
+        db_index=True
     )
     username = models.CharField(max_length=255, default=EXAMPLE_USERNAME)
     full_name = models.CharField(max_length=255, default=EXAMPLE_FULL_NAME)
@@ -273,12 +273,11 @@ class ExampleCertificate(TimeStampedModel):
     error_response = models.TextField(null=True, default=None)
     download_url = models.CharField(max_length=255, null=True, default=None)
 
-    def submit_to_queue(self):
-        """TODO """
-        xqueue = XQueueInterface()
-
     def update_from_response(self, status, error_response=None, download_url=None):
         """TODO """
+        if status not in [self.STATUS_SUCCESS, self.STATUS_ERROR]:
+            raise ValueError('TODO')
+
         self.status = status
 
         if error_response:

@@ -8,10 +8,15 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from capa.xqueue_interface import XQUEUE_METRIC_NAME
-from certificates.models import certificate_status_for_student, CertificateStatuses, GeneratedCertificate
+from certificates.models import (
+    certificate_status_for_student,
+    CertificateStatuses,
+    GeneratedCertificate,
+    ExampleCertificate
+)
 from certificates.queue import XQueueCertInterface
-from xmodule.course_module import CourseDescriptor
 from xmodule.modulestore.django import modulestore
+from util.json_request import JsonResponse
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
 
 logger = logging.getLogger(__name__)
@@ -126,7 +131,24 @@ def update_certificate(request):
 @csrf_exempt
 def update_example_certificate(request):
     """TODO """
-    return HttpResponse(
-        json.dumps({'return_code': 0}),
-        mimetype='application/json'
-    )
+    # TODO
+    xqueue_body = json.loads(request.POST.get('xqueue_body'))
+    xqueue_header = json.loads(request.POST.get('xqueue_header'))
+
+    try:
+        key = xqueue_header.get('lms_key')
+        cert = ExampleCertificate.objects.get(key=key)
+    except ExampleCertificate.DoesNotExist:
+        return JsonResponse({
+            'return_code': 1,
+            'content': 'TODO'
+        })
+
+    if 'error' in xqueue_body:
+        error_response = xqueue_body.get('error_reason')
+        cert.update_from_response(ExampleCertificate.STATUS_ERROR, error_response=error_response)
+    else:
+        download_url = xqueue_body.get('url')
+        cert.update_from_response(ExampleCertificate.STATUS_SUCCESS, download_url=download_url)
+
+    return JsonResponse({'return_code': 0})

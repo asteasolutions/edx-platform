@@ -337,6 +337,10 @@ class XQueueCertInterface(object):
 
         return new_status
 
+    def add_example_cert(self, example_cert):
+        """TODO """
+        pass
+
     def _send_to_xqueue(self, contents, key):
         """Create a new task on the XQueue. """
 
