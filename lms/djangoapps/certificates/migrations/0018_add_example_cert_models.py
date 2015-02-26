@@ -25,8 +25,8 @@ class Migration(SchemaMigration):
             ('modified', self.gf('model_utils.fields.AutoLastModifiedField')(default=datetime.datetime.now)),
             ('example_cert_set', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['certificates.ExampleCertificateSet'])),
             ('description', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('key', self.gf('django.db.models.fields.CharField')(default='0324446cf8fc4c238e61bd83049cee8e', max_length=255, db_index=True)),
-            ('username', self.gf('django.db.models.fields.CharField')(default=u'example_cert_test_user', max_length=255)),
+            ('uuid', self.gf('django.db.models.fields.CharField')(default='39b31fc74bd14e9b999114a7c536fabe', max_length=255, db_index=True)),
+            ('access_key', self.gf('django.db.models.fields.CharField')(default='eabc151108904415a36159626ffc6667', max_length=255, db_index=True)),
             ('full_name', self.gf('django.db.models.fields.CharField')(default=u'John Do\xeb', max_length=255)),
             ('template', self.gf('django.db.models.fields.CharField')(max_length=255)),
             ('grade', self.gf('django.db.models.fields.CharField')(max_length=255)),
@@ -111,6 +111,7 @@ class Migration(SchemaMigration):
         },
         'certificates.examplecertificate': {
             'Meta': {'object_name': 'ExampleCertificate'},
+            'access_key': ('django.db.models.fields.CharField', [], {'default': "'bcf26bfcd39b4629ab02a48e38d55cef'", 'max_length': '255', 'db_index': 'True'}),
             'created': ('model_utils.fields.AutoCreatedField', [], {'default': 'datetime.datetime.now'}),
             'description': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'download_url': ('django.db.models.fields.CharField', [], {'default': 'None', 'max_length': '255', 'null': 'True'}),
@@ -119,11 +120,10 @@ class Migration(SchemaMigration):
             'full_name': ('django.db.models.fields.CharField', [], {'default': "u'John Do\\xeb'", 'max_length': '255'}),
             'grade': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'key': ('django.db.models.fields.CharField', [], {'default': "'bb10fadefc9b45fd8a10577aaeffd3b6'", 'max_length': '255', 'db_index': 'True'}),
             'modified': ('model_utils.fields.AutoLastModifiedField', [], {'default': 'datetime.datetime.now'}),
             'status': ('django.db.models.fields.CharField', [], {'default': "'started'", 'max_length': '255'}),
             'template': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
-            'username': ('django.db.models.fields.CharField', [], {'default': "u'example_cert_test_user'", 'max_length': '255'})
+            'uuid': ('django.db.models.fields.CharField', [], {'default': "'0b099dc4c4e247568deaf57f8c81fd8a'", 'max_length': '255', 'db_index': 'True'})
         },
         'certificates.examplecertificateset': {
             'Meta': {'object_name': 'ExampleCertificateSet'},
