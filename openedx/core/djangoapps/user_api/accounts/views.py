@@ -82,11 +82,19 @@ class AccountView(APIView):
         """
         GET /api/user/v0/accounts/{username}/
         """
-        existing_user, existing_user_profile = self._get_user_and_profile(username)
+        account_settings = AccountView.get_serialized_account(username)
+        return Response(account_settings)
+
+    @staticmethod
+    def get_serialized_account(username):
+        """
+        Returns the serialized JSON for the specified username.
+        """
+        existing_user, existing_user_profile = AccountView._get_user_and_profile(username)
         user_serializer = AccountUserSerializer(existing_user)
         legacy_profile_serializer = AccountLegacyProfileSerializer(existing_user_profile)
 
-        return Response(dict(user_serializer.data, **legacy_profile_serializer.data))
+        return dict(user_serializer.data, **legacy_profile_serializer.data)
 
     def patch(self, request, username):
         """
@@ -96,7 +104,7 @@ class AccountView(APIView):
         https://tools.ietf.org/html/rfc7396. The content_type must be "application/merge-patch+json" or
         else an error response with status code 415 will be returned.
         """
-        existing_user, existing_user_profile = self._get_user_and_profile(username)
+        existing_user, existing_user_profile = AccountView._get_user_and_profile(username)
 
         # Check for fields that are not editable. Marking them read-only causes them to be ignored, but we wish to 400.
         update = request.DATA
@@ -124,7 +132,8 @@ class AccountView(APIView):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def _get_user_and_profile(self, username):
+    @staticmethod
+    def _get_user_and_profile(username):
         """
         Helper method to return the legacy user and profile objects based on username.
         """
