@@ -1,14 +1,16 @@
 %video-button {
   @include transition(all $tmg-f2 ease-in-out 0s);
   display: inline-block;
-  vertical-align: middle;
-  border: 0px;
-  border-radius: ($baseline/5);
-  box-shadow: none;
-  background: transparent;
-  font-size: 100%;
+  height: ($baseline*2);
+  padding: 0 ($baseline - 5);
+  line-height: ($baseline*2);
   text-shadow: none;
+  font-size: 100%;
   color: #f5f5f5;
+  border: 0;
+  border-radius: ($baseline/5);
+  background: transparent;
+  box-shadow: none;
 
   &:hover,
   &:focus {
@@ -57,6 +59,7 @@
       width: $baseline;
       height: $baseline;
       border: 2px solid darken($pink, 20%);
+      border-radius: 50%;
       background-color: lighten($pink, 20%);
     }
   }
@@ -68,7 +71,7 @@
 
   a {
     top: 0;
-    margin-left: 0;
+    margin-left: -($baseline/5) / 2;
   }
 
   &:hover,
@@ -78,6 +81,7 @@
 
     a {
       top: -6px;
+      margin-left: -($baseline/2);
     }
   }
 }
@@ -87,7 +91,7 @@
 
   a {
     left: 0;
-    margin-bottom: 0;
+    margin-bottom: -($baseline/5) / 2;
   }
 
   &:hover,
@@ -96,7 +100,8 @@
     margin-left: -($baseline/4);
 
     a {
-      left: -6px;
+      left: -7px;
+      margin-bottom: -($baseline/2);
     }
   }
 }
@@ -155,12 +160,14 @@
 
       .slider {
         @extend %slider-range-horizontal;
-        border-bottom: 2px solid $black;
+        top: -($baseline/3.9); // Needed to provide space for the controls
       }
     }
 
     .controls {
-      padding: ($baseline/2);
+      height: ($baseline*2);
+      line-height: ($baseline*2);
+      padding: ($baseline/3 - 2.66667) ($baseline/3) ($baseline/3) ($baseline/3); // Fine-tuning
       font-size: 90%;
 
       .menu-container {
@@ -171,8 +178,9 @@
           display: none;
           position: absolute;
           z-index: 10;
-          bottom: 36px;
+          bottom: ($baseline*2);
           min-width: ($baseline*6.5);
+          height: auto; // Override the height of buttons
           margin: 0;
           padding: 0;
           background: #222;
@@ -227,7 +235,6 @@
       }
 
       .time {
-        padding: ($baseline/4) ($baseline/2);
 
         &:hover,
         &:focus {
@@ -246,7 +253,7 @@
       .volume {
 
         .volume-slider-container {
-          bottom: 32px;
+          bottom: ($baseline*2);
           min-width: ($baseline*2) + 4;
           height: ($baseline*5);
           margin: 0;
@@ -267,7 +274,7 @@
       }
 
       .quality {
-
+        font-size: 110%; // Smaller font made the button slightly smaller than the rest.
       }
 
       .captions {
