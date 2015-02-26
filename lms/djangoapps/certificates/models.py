@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Certificates are created for a student and an offering of a course.
 
@@ -44,13 +45,14 @@ Eligibility:
        then the student will be issued a certificate regardless of his grade,
        unless he has allow_certificate set to False.
 """
+from datetime import datetime
+import uuid
 
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
-from datetime import datetime
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
 from config_models.models import ConfigurationModel
@@ -185,6 +187,9 @@ class ExampleCertificateSet(TimeStampedModel):
 
     course_key = CourseKeyField(max_length=255)
 
+    class Meta:
+        get_latest_by = 'created'
+
     @classmethod
     def generate_test_certificates(cls, course_key):
         """TODO """
@@ -196,13 +201,47 @@ class ExampleCertificateSet(TimeStampedModel):
     def latest_status(cls, course_key):
         """TODO """
         # Retrieve the latest cert statuses and errors
-        # Returns a dictionary
-        pass
+        # Returns a list
+        try:
+            latest = cls.objects.latest()
+        except cls.DoesNotExist:
+            return None
+
+        queryset = ExampleCertificate.objects.filter(example_cert_set=latest).order_by('-created')
+        return [
+            {
+                'description': cert.description,
+                'status': cert.status,
+                'error_response': cert.error_response,
+                'download_url': cert.download_url
+            }
+            for cert in queryset
+        ]
 
     @classmethod
     def _certificates_for_course(cls, course_key):
         # TODO -- build certificates based on the course modes
-        pass
+        templates = [
+            cls._template_for_mode(mode.slug, course_key)
+            for mode in CourseMode.modes_for_course(course_key)
+        ]
+
+        return [
+            ExampleCertificate.objects.create(
+                description=mode.slug,
+                template=cls._template_for_mode(mode.slug, course_key)
+            )
+            for mode in CourseMode.modes_for_course(course_key)
+        ]
+
+    @staticmethod
+    def _template_for_mode(mode_slug, course_key):
+        """TODO """
+        return (
+            u"certificate-template-{key.org}-{key.course}-verified.pdf".format(key=course_key)
+            if mode_slug == 'verified'
+            else u"certificate-template-{key.org}-{key.course}.pdf".format(key=course_key)
+        )
 
 
 class ExampleCertificate(TimeStampedModel):
@@ -216,41 +255,67 @@ class ExampleCertificate(TimeStampedModel):
     STATUS_SUCCESS = 'success'
     STATUS_ERROR = 'error'
 
+    # Default values
+    EXAMPLE_USERNAME = u'example_cert_test_user'
+    EXAMPLE_FULL_NAME = u'John Doë'
+
     # Inputs
-    key = models.CharField(max_length=255)
-    username = models.CharField(max_length=255)
-    name = models.CharField(max_length=255)
-    template_pdf = models.CharField(max_length=255)
+    key = models.CharField(
+        max_length=255,
+        default=(lambda: uuid.uuid4().hex)
+    )
+    username = models.CharField(max_length=255, default=EXAMPLE_USERNAME)
+    full_name = models.CharField(max_length=255, default=EXAMPLE_FULL_NAME)
+    template = models.CharField(max_length=255)
 
     # Outputs
     status = models.CharField(max_length=255, default=STATUS_STARTED)
-    response_log = models.TextField(blank=True, default="")
-    download_url = models.CharField(max_length=255, blank=True, default="")
+    error_response = models.TextField(null=True, default=None)
+    download_url = models.CharField(max_length=255, null=True, default=None)
 
     def submit_to_queue(self):
         """TODO """
-        pass
+        xqueue = XQueueInterface()
 
-    def update_from_response(self, response):
+    def update_from_response(self, status, error_response=None, download_url=None):
         """TODO """
-        pass
+        self.status = status
+
+        if error_response:
+            self.error_response = error_response
+
+        if download_url:
+            self.download_url = download_url
+
+        self.save()
 
 
 class CertificateGenerationCourseSetting(TimeStampedModel):
     """TODO """
 
     course_key = CourseKeyField(max_length=255)
-    enabled = models.BooleanField()
+    enabled = models.BooleanField(default=False)
+
+    class Meta:
+        get_latest_by = 'created'
 
     @classmethod
-    def is_enabled(cls, course_key):
+    def is_enabled_for_course(cls, course_key):
         """TODO """
-        pass
+        try:
+            latest = cls.objects.latest()
+        except cls.DoesNotExist:
+            return False
+        else:
+            return latest.enabled
 
     @classmethod
-    def set_enabled(cls, course_key, is_enabled):
+    def set_enabled_for_course(cls, course_key, is_enabled):
         """TODO """
-        pass
+        CertificateGenerationCourseSetting.objects.create(
+            course_key=course_key,
+            enabled=is_enabled
+        )
 
 
 class CertificateGenerationConfiguration(ConfigurationModel):

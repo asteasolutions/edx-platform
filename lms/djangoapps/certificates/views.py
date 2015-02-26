@@ -121,3 +121,12 @@ def update_certificate(request):
         cert.save()
         return HttpResponse(json.dumps({'return_code': 0}),
                             mimetype='application/json')
+
+
+@csrf_exempt
+def update_example_certificate(request):
+    """TODO """
+    return HttpResponse(
+        json.dumps({'return_code': 0}),
+        mimetype='application/json'
+    )

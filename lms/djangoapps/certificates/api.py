@@ -74,11 +74,11 @@ def certificate_downloadable_status(student, course_key):
 def cert_generation_enabled_for_course(course_key, is_enabled=None):
     """TODO """
     if is_enabled is not None:
-        CertificateGenerationCourseSetting.set_enabled(course_key, is_enabled)
+        CertificateGenerationCourseSetting.set_enabled_for_course(course_key, is_enabled)
 
     return (
         CertificateGenerationConfiguration.latest().enabled and
-        CertificateGenerationCourseSetting.is_enabled(course_key)
+        CertificateGenerationCourseSetting.is_enabled_for_course(course_key)
     )
 
 
