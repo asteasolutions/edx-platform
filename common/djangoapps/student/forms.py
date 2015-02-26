@@ -2,6 +2,7 @@
 Utility functions for validating forms
 """
 
+from django import forms
 from django.utils.http import int_to_base36
 from django.utils.translation import ugettext_lazy as _
 from django.template import loader
