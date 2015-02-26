@@ -270,7 +270,11 @@ class ExampleCertificate(TimeStampedModel):
     def update_status(self, status, error_reason=None, download_url=None):
         """TODO """
         if status not in [self.STATUS_SUCCESS, self.STATUS_ERROR]:
-            raise ValueError('TODO')
+            msg = "Invalid status: must be either '{success}' or '{error}'.".format(
+                success=self.STATUS_SUCCESS,
+                error=self.STATUS_ERROR
+            )
+            raise ValueError(msg)
 
         self.status = status
 
@@ -285,13 +289,18 @@ class ExampleCertificate(TimeStampedModel):
     @property
     def status_dict(self):
         """TODO """
-        return {
+        result = {
             'description': self.description,
             'status': self.status,
-            'error_reason': self.error_reason,
-            'download_url': self.download_url
         }
 
+        if self.error_reason:
+            result['error_reason'] = self.error_reason
+
+        if self.download_url:
+            result['download_url'] = self.download_url
+
+        return result
 
     @property
     def course_key(self):

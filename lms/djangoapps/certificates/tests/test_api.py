@@ -1,6 +1,7 @@
 """
 Tests for the certificates api and helper function.
 """
+from contextlib import contextmanager
 import ddt
 
 from django.test import TestCase, RequestFactory
@@ -12,10 +13,16 @@ from xmodule.modulestore.tests.factories import CourseFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from student.models import CourseEnrollment
 from student.tests.factories import UserFactory
+from course_modes.tests.factories import CourseModeFactory
 from config_models.models import cache
 
 from certificates import api as certs_api
-from certificates.models import (CertificateStatuses, CertificateGenerationConfiguration)
+from certificates.models import (
+    CertificateStatuses,
+    CertificateGenerationConfiguration,
+    ExampleCertificate
+)
+from certificates.queue import XQueueCertInterface
 from certificates.tests.factories import GeneratedCertificateFactory
 
 
@@ -198,8 +205,62 @@ class CertificateGenerationEnabledTest(TestCase):
 class GenerateExampleCertificatesTest(TestCase):
     """TODO """
 
+    COURSE_KEY = CourseLocator(org='test', course='test', run='test')
+
+    def setUp(self):
+        super(GenerateExampleCertificatesTest, self).setUp()
+
     def test_generate_example_certs(self):
-        pass
+        # Generate certificates for the course
+        with self._mock_xqueue() as mock_queue:
+            certs_api.generate_example_certificates(self.COURSE_KEY)
+
+        # Verify that the appropriate certs were added to the queue
+        self._assert_certs_in_queue(mock_queue, 1)
+
+        # Verify that the certificate status is "started"
+        self._assert_cert_status({
+            'description': 'honor',
+            'status': 'started'
+        })
 
     def test_generate_example_certs_with_verified_mode(self):
-        pass
+        # Create verified and honor modes for the course
+        CourseModeFactory(course_id=self.COURSE_KEY, mode_slug='honor')
+        CourseModeFactory(course_id=self.COURSE_KEY, mode_slug='verified')
+
+        # Generate certificates for the course
+        with self._mock_xqueue() as mock_queue:
+            certs_api.generate_example_certificates(self.COURSE_KEY)
+
+        # Verify that the appropriate certs were added to the queue
+        self._assert_certs_in_queue(mock_queue, 2)
+
+        # Verify that the certificate status is "started"
+        self._assert_cert_status(
+            {
+                'description': 'verified',
+                'status': 'started'
+            },
+            {
+                'description': 'honor',
+                'status': 'started'
+            }
+        )
+
+    @contextmanager
+    def _mock_xqueue(self):
+        """TODO """
+        with patch.object(XQueueCertInterface, 'add_example_cert') as mock_queue:
+            yield mock_queue
+
+    def _assert_certs_in_queue(self, mock_queue, expected_num):
+        """TODO """
+        certs_in_queue = [call_args[0] for (call_args, __) in mock_queue.call_args_list]
+        self.assertEqual(len(certs_in_queue), expected_num)
+        for cert in certs_in_queue:
+            self.assertTrue(isinstance(cert, ExampleCertificate))
+
+    def _assert_cert_status(self, *expected_statuses):
+        actual_status = certs_api.example_certificates_status(self.COURSE_KEY)
+        self.assertEqual(list(expected_statuses), actual_status)
