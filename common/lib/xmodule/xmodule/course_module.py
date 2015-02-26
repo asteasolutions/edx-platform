@@ -606,8 +606,8 @@ class CourseFields(object):
     due_date_display_format = String(
         display_name=_("Due Date Display Format"),
         help=_(
-            "Enter the format due dates are displayed in. Due dates must be in MM-DD-YYYY, DD-MM-YYYY, YYYY-MM-DD, "
-            "or YYYY-DD-MM format."
+            "Enter the format for due dates. The default is Mon DD, YYYY. Enter "%m-%d-%Y" for MM-DD-YYYY, "
+            ""%d-%m-%Y" for DD-MM-YYYY, "%Y-%m-%d" for YYYY-MM-DD, or "%Y-%d-%m" for YYYY-DD-MM."
         ),
         scope=Scope.settings, default=None
     )
