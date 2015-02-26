@@ -69,14 +69,14 @@ class XQueueCertInterfaceTest(TestCase):
     def _assert_queue_task(self, mock_send, cert):
         """TODO """
         expected_header = json.dumps({
-            'lms_key': cert.key,
+            'lms_key': cert.access_key,
             'lms_callback_url': 'https://edx.org/update_example_certificate',
             'queue_name': 'certificates'
         })
 
         expected_body = json.dumps({
             'action': 'create',
-            'username': 'example_cert_test_user',
+            'username': cert.uuid,
             'name': u'John Doë',
             'course_id': unicode(self.COURSE_KEY),
             'template_pdf': 'test.pdf'

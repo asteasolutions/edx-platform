@@ -146,8 +146,9 @@ def update_example_certificate(request):
         return JsonResponseBadRequest("TODO")
 
     try:
-        key = xqueue_header.get('lms_key')
-        cert = ExampleCertificate.objects.get(key=key)
+        uuid = xqueue_body.get('username')
+        access_key = xqueue_header.get('lms_key')
+        cert = ExampleCertificate.objects.get(uuid=uuid, access_key=access_key)
     except ExampleCertificate.DoesNotExist:
         raise Http404
 

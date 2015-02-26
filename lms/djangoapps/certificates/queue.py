@@ -364,7 +364,7 @@ class XQueueCertInterface(object):
         """TODO """
         contents = {
             'action': 'create',
-            'username': example_cert.username,
+            'username': example_cert.uuid, # TODO -- explain this
             'course_id': unicode(example_cert.course_key),
             'name': example_cert.full_name,
             'template_pdf': example_cert.template
@@ -374,7 +374,7 @@ class XQueueCertInterface(object):
         try:
             self._send_to_xqueue(
                 contents,
-                example_cert.key,
+                example_cert.access_key,
                 callback_url_path=callback_url_path
             )
         except XQueueAddToQueueError as exc:

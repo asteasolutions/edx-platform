@@ -248,16 +248,19 @@ class ExampleCertificate(TimeStampedModel):
     STATUS_ERROR = 'error'
 
     # Default values
-    EXAMPLE_USERNAME = u'example_cert_test_user'
     EXAMPLE_FULL_NAME = u'John Doë'
 
     # Inputs
-    key = models.CharField(
+    uuid = models.CharField(
         max_length=255,
         default=(lambda: uuid.uuid4().hex),
         db_index=True
     )
-    username = models.CharField(max_length=255, default=EXAMPLE_USERNAME)
+    access_key = models.CharField(
+        max_length=255,
+        default=(lambda: uuid.uuid4().hex),
+        db_index=True
+    )
     full_name = models.CharField(max_length=255, default=EXAMPLE_FULL_NAME)
     template = models.CharField(max_length=255)
     grade = models.CharField(max_length=255)

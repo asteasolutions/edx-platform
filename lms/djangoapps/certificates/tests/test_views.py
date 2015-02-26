@@ -32,7 +32,7 @@ class UpdateExampleCertificateViewTest(TestCase):
         self.url = reverse('certificates.views.update_example_certificate')
 
     def test_update_example_certificate_success(self):
-        response = self._post_to_view(key=self.cert.key, download_url=self.DOWNLOAD_URL)
+        response = self._post_to_view(self.cert, download_url=self.DOWNLOAD_URL)
         self._assert_response(response)
 
         self.cert = ExampleCertificate.objects.get()
@@ -40,11 +40,20 @@ class UpdateExampleCertificateViewTest(TestCase):
         self.assertEqual(self.cert.download_url, self.DOWNLOAD_URL)
 
     def test_update_example_certificate_invalid_key(self):
-        response = self._post_to_view(key='invalid', download_url=self.DOWNLOAD_URL)
+        payload = {
+            'xqueue_header': json.dumps({
+                'lms_key': 'invalid'
+            }),
+            'xqueue_body': json.dumps({
+                'username': self.cert.uuid,
+                'url': self.DOWNLOAD_URL
+            })
+        }
+        response = self.client.post(self.url, data=payload)
         self.assertEqual(response.status_code, 404)
 
     def test_update_example_certificate_error(self):
-        response = self._post_to_view(key=self.cert.key, error_reason=self.ERROR_REASON)
+        response = self._post_to_view(self.cert, error_reason=self.ERROR_REASON)
         self._assert_response(response)
 
         self.cert = ExampleCertificate.objects.get()
@@ -55,9 +64,10 @@ class UpdateExampleCertificateViewTest(TestCase):
     def test_update_example_certificate_invalid_params(self, missing_param):
         payload = {
             'xqueue_header': json.dumps({
-                'lms_key': self.cert.key
+                'lms_key': self.cert.access_key
             }),
             'xqueue_body': json.dumps({
+                'username': self.cert.uuid,
                 'url': self.DOWNLOAD_URL
             })
         }
@@ -69,9 +79,11 @@ class UpdateExampleCertificateViewTest(TestCase):
     def test_update_example_certificate_missing_download_url(self):
         payload = {
             'xqueue_header': json.dumps({
-                'lms_key': self.cert.key
+                'lms_key': self.cert.access_key
             }),
-            'xqueue_body': json.dumps({})
+            'xqueue_body': json.dumps({
+                'username': self.cert.uuid
+            })
         }
         response = self.client.post(self.url, data=payload)
         self.assertEqual(response.status_code, 400)
@@ -88,10 +100,10 @@ class UpdateExampleCertificateViewTest(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 405)
 
-    def _post_to_view(self, key, download_url=None, error_reason=None):
+    def _post_to_view(self, cert, download_url=None, error_reason=None):
         """TODO """
-        header = { 'lms_key': key }
-        body = {}
+        header = { 'lms_key': cert.access_key }
+        body = { 'username': cert.uuid }
 
         if download_url is not None:
             body['url'] = download_url
