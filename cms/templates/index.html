@@ -481,7 +481,7 @@
           </li>
           % if settings.TENDER_DOMAIN:
             <li class="action-item">
-              <a href="http://${settings.TENDER_DOMAIN}/discussion/new" class="show-tender" title="${_("Use our feedback tool, Tender, to request help")}">
+              <a href="http://${settings.TENDER_DOMAIN}/discussion/new" class="action action-primary" title="${_("Use our feedback tool, Tender, to request help")}">
                 ${_("Request help with {studio_name}").format(studio_name=settings.STUDIO_NAME)}
               </a>
             </li>
