@@ -44,10 +44,12 @@ class MaxScoresCache(object):
         )
 
     def push_to_cache(self):
-        if self._max_scores_cache:
-            cache.set_many(self._max_scores_cache, 60 * 10)  # 10 mins
+        if self._max_scores_updates:
+            cache.set_many(self._max_scores_updates, 60 * 10000)  # 10 mins
+
 
     def add_max_score(self, location, max_score):
+        print "added to cache"
         loc_str = unicode(location)
         if self._max_scores_cache.get(loc_str) != max_score:
             self._max_scores_updates[loc_str] = max_score
@@ -57,6 +59,9 @@ class MaxScoresCache(object):
         max_score = self._max_scores_updates.get(loc_str)
         if max_score is None:
             max_score = self._max_scores_cache.get(loc_str)
+
+        if max_score is None:
+            max_score = cache.get(loc_str)
         return max_score
 
     @classmethod
@@ -503,6 +508,7 @@ def get_score(course_id, user, problem_descriptor, module_creator, max_scores_ca
         total = student_module.max_grade
 
     elif max_score is not None:
+        print "\ncongratulations, you used the cache\n"
         correct = 0
         total = max_score
 
