@@ -2,27 +2,6 @@ from social.backends.oauth import BaseOAuth2
 
 from . import provider
 
-
-class EdveraProvider(provider.BaseProvider):
-    """Provider for EDvera's Oauth2 auth system."""
-
-    BACKEND_CLASS = EdveraOAuth2
-    ICON_CLASS = 'fa-google-plus'
-    NAME = 'Edvera'
-    SETTINGS = {
-        'SOCIAL_AUTH_EDVERA_OAUTH2_KEY': None,
-        'SOCIAL_AUTH_EDVERA_OAUTH2_SECRET': None,
-    }
-
-    @classmethod
-    def get_email(cls, provider_details):
-        return provider_details.get('email')
-
-    @classmethod
-    def get_name(cls, provider_details):
-        return provider_details.get('fullname')
-
-
 class EdveraOAuth2(BaseOAuth2):
     """Edvera authentication backend"""
 
@@ -65,3 +44,23 @@ class EdveraOAuth2(BaseOAuth2):
         return self.get_json(self.SITE + 'users/current', params={
             'access_token': access_token
         })
+
+
+class EdveraProvider(provider.BaseProvider):
+    """Provider for EDvera's Oauth2 auth system."""
+
+    BACKEND_CLASS = EdveraOAuth2
+    ICON_CLASS = 'fa-google-plus'
+    NAME = 'Edvera'
+    SETTINGS = {
+        'SOCIAL_AUTH_EDVERA_OAUTH2_KEY': None,
+        'SOCIAL_AUTH_EDVERA_OAUTH2_SECRET': None,
+    }
+
+    @classmethod
+    def get_email(cls, provider_details):
+        return provider_details.get('email')
+
+    @classmethod
+    def get_name(cls, provider_details):
+        return provider_details.get('fullname')
