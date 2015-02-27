@@ -1,5 +1,7 @@
 from social.backends.oauth import BaseOAuth2
 
+from django.conf import settings
+
 from . import provider
 
 class EdveraOAuth2(BaseOAuth2):
@@ -9,7 +11,9 @@ class EdveraOAuth2(BaseOAuth2):
 
     REDIRECT_STATE = False
 
-    SITE = 'http://wqu-agency.edvera.dev:3000/'
+    DEFAULT_SITE = 'http://wqu-agency.edvera.dev:3000/'
+
+    SITE = getattr(settings, 'EDVERA_SITE', DEFAULT_SITE)
 
     AUTHORIZATION_URL = SITE + 'oauth/authorize'
 
@@ -21,7 +25,7 @@ class EdveraOAuth2(BaseOAuth2):
 
     # The order of the default scope is important
 
-    DEFAULT_SCOPE = ['write', 'public', 'update']
+    # DEFAULT_SCOPE = ['write', 'public', 'update']
 
     def revoke_token_params(self, token, uid):
         return {'token': token}
@@ -30,9 +34,11 @@ class EdveraOAuth2(BaseOAuth2):
         return {'Content-type': 'application/json'}
 
     def get_user_id(self, details, response):
+        print 'get_user_id: ' + response['user']['id']
         return response['user']['id']
 
     def get_user_details(self, response):
+        print 'get_user_details: ' + response
         user = response['user']
         return {
             'email': user['email'],
@@ -41,7 +47,8 @@ class EdveraOAuth2(BaseOAuth2):
         }
 
     def user_data(self, access_token, *args, **kwargs):
-        return self.get_json(self.SITE + 'users/current', params={
+        print 'user_data: ' + access_token
+        return self.get_json('http://wqu-agency.edvera.dev:3000/' + 'users/current', params={
             'access_token': access_token
         })
 
