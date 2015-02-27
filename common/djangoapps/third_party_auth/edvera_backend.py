@@ -9,14 +9,14 @@ class EdveraOAuth2(BaseOAuth2):
 
     REDIRECT_STATE = False
 
-    SITE = 'http://wqu-agency.edvera.dev/'
+    SITE = 'http://wqu-agency.edvera.dev:3000/'
 
-    AUTHORIZATION_URL = SITE + '/oauth/authorize'
+    AUTHORIZATION_URL = SITE + 'oauth/authorize'
 
-    ACCESS_TOKEN_URL = SITE + '/oauth/token'
+    ACCESS_TOKEN_URL = SITE + 'oauth/token'
     ACCESS_TOKEN_METHOD = 'POST'
 
-    REVOKE_TOKEN_URL = SITE + '/oauth/revoke'
+    REVOKE_TOKEN_URL = SITE + 'oauth/revoke'
     REVOKE_TOKEN_METHOD = 'POST'
 
     # The order of the default scope is important
