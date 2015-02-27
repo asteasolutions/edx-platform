@@ -46,8 +46,13 @@ urlpatterns = patterns('',  # nopep8
     url(r'^xmodule/', include('pipeline_js.urls')),
     url(r'^heartbeat$', include('heartbeat.urls')),
 
-    url(r'^user_api/', include('openedx.core.djangoapps.user_api.urls')),
     url(r'^lang_pref/', include('lang_pref.urls')),
+
+    url(r'^api/user/', include('openedx.core.djangoapps.user_api.urls')),
+
+    # Note: these are older versions of the User API that will eventually be
+    # subsumed by api/user.
+    url(r'^user_api/', include('openedx.core.djangoapps.user_api.legacy_urls')),
 )
 
 # User creation and updating views
