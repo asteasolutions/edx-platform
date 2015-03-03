@@ -43,7 +43,7 @@ class EdveraOAuth2(BaseOAuth2):
         return {
             'email': user['email'],
             'fullname': user['first_name'] + ' ' + user['last_name'],
-            'firstname': user['first_name']
+            'username': user['first_name']
         }
 
     def user_data(self, access_token, *args, **kwargs):
