@@ -19,7 +19,7 @@ class EdveraOAuth2(BaseOAuth2):
 
     SITE = getattr(settings, 'EDVERA_SITE', DEFAULT_SITE)
 
-    # logger.error("SITE SET IN SETTINGS: " + getattr(settings, 'EDVERA_SITE'))
+    logger.error(settings)
 
     AUTHORIZATION_URL = SITE + 'oauth/authorize'
 
