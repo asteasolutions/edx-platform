@@ -3,6 +3,10 @@ from social.backends.oauth import BaseOAuth2
 from django.conf import settings
 
 from . import provider
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class EdveraOAuth2(BaseOAuth2):
     """Edvera authentication backend"""
@@ -25,7 +29,7 @@ class EdveraOAuth2(BaseOAuth2):
 
     # The order of the default scope is important
 
-    # DEFAULT_SCOPE = ['write', 'public', 'update']
+    DEFAULT_SCOPE = ['write', 'public', 'update']
 
     def revoke_token_params(self, token, uid):
         return {'token': token}
@@ -34,21 +38,16 @@ class EdveraOAuth2(BaseOAuth2):
         return {'Content-type': 'application/json'}
 
     def get_user_id(self, details, response):
-        print 'get_user_id: ' + response['user']['id']
-        return response['user']['id']
+        return response.get('user')['id']
 
     def get_user_details(self, response):
-        print 'get_user_details: ' + response
-        user = response['user']
-        return {
-            'email': user['email'],
-            'fullname': user['first_name'] + ' ' + user['last_name'],
-            'firstname': user['first_name']
-        }
+        user = response.get('user', {})
+        return {'email': user['email'],
+                'fullname': user['first_name'] + ' ' + user['last_name'],
+                'username': user['first_name']}
 
     def user_data(self, access_token, *args, **kwargs):
-        print 'user_data: ' + access_token
-        return self.get_json('http://wqu-agency.edvera.dev:3000/' + 'users/current', params={
+        return self.get_json(self.SITE + 'users/current', params={
             'access_token': access_token
         })
 
@@ -57,7 +56,7 @@ class EdveraProvider(provider.BaseProvider):
     """Provider for EDvera's Oauth2 auth system."""
 
     BACKEND_CLASS = EdveraOAuth2
-    ICON_CLASS = 'fa-google-plus'
+    ICON_CLASS = None
     NAME = 'Edvera'
     SETTINGS = {
         'SOCIAL_AUTH_EDVERA_OAUTH2_KEY': None,
