@@ -12,10 +12,14 @@ if settings.DEBUG or settings.FEATURES.get('ENABLE_DJANGO_ADMIN_SITE'):
 
 # Use urlpatterns formatted as within the Django docs with first parameter "stuck" to the open parenthesis
 # pylint: disable=bad-continuation
-urlpatterns = ('',  # nopep8
+urlpatterns = (
+    '',
+
     # certificate view
     url(r'^update_certificate$', 'certificates.views.update_certificate'),
+    url(r'^update_example_certificate$', 'certificates.views.update_example_certificate'),
     url(r'^request_certificate$', 'certificates.views.request_certificate'),
+
     url(r'^$', 'branding.views.index', name="root"),   # Main marketing page, or redirect to courseware
     url(r'^dashboard$', 'student.views.dashboard', name="dashboard"),
     url(r'^login_ajax$', 'student.views.login_user', name="login"),
@@ -26,9 +30,6 @@ urlpatterns = ('',  # nopep8
     url(r'^change_email$', 'student.views.change_email_request', name="change_email"),
     url(r'^email_confirm/(?P<key>[^/]*)$', 'student.views.confirm_email_change'),
     url(r'^change_name$', 'student.views.change_name_request', name="change_name"),
-    url(r'^accept_name_change$', 'student.views.accept_name_change'),
-    url(r'^reject_name_change$', 'student.views.reject_name_change'),
-    url(r'^pending_name_changes$', 'student.views.pending_name_changes'),
     url(r'^event$', 'track.views.user_track'),
     url(r'^segmentio/event$', 'track.views.segmentio.segmentio_event'),
     url(r'^t/(?P<template>[^/]*)$', 'static_template_view.views.index'),   # TODO: Is this used anymore? What is STATIC_GRAB?
@@ -59,17 +60,17 @@ urlpatterns = ('',  # nopep8
 
     url(r'^heartbeat$', include('heartbeat.urls')),
 
-    url(r'^user_api/', include('openedx.core.djangoapps.user_api.urls')),
+    url(r'^api/user/', include('openedx.core.djangoapps.user_api.urls')),
 
-    url(r'^api/user/', include('openedx.core.djangoapps.user_api.accounts.urls')),
+    # Note: these are older versions of the User API that will eventually be
+    # subsumed by api/user.
+    url(r'^user_api/', include('openedx.core.djangoapps.user_api.legacy_urls')),
 
     url(r'^notifier_api/', include('notifier_api.urls')),
 
     url(r'^lang_pref/', include('lang_pref.urls')),
 
     url(r'^i18n/', include('django.conf.urls.i18n')),
-
-    url(r'^embargo$', 'student.views.embargo', name="embargo"),
 
     # Feedback Form endpoint
     url(r'^submit_feedback$', 'util.views.submit_feedback'),
@@ -496,8 +497,8 @@ urlpatterns += (
     url(r'^shoppingcart/', include('shoppingcart.urls')),
 )
 
-# Country access (embargo)
-if settings.FEATURES.get('ENABLE_COUNTRY_ACCESS'):
+# Embargo
+if settings.FEATURES.get('EMBARGO'):
     urlpatterns += (
         url(r'^embargo/', include('embargo.urls')),
     )

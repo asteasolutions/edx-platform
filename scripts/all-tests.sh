@@ -62,7 +62,6 @@ source scripts/jenkins-common.sh
 
 # Violations thresholds for failing the build
 PYLINT_THRESHOLD=6000
-PEP8_THRESHOLD=0
 
 # If the environment variable 'SHARD' is not set, default to 'all'.
 # This could happen if you are trying to use this script from
@@ -75,14 +74,15 @@ case "$TEST_SUITE" in
 
     "quality")
         paver find_fixme > fixme.log || { cat fixme.log; EXIT=1; }
-        paver run_pep8 -l $PEP8_THRESHOLD > pep8.log || { cat pep8.log; EXIT=1; }
+        paver run_pep8 > pep8.log || { cat pep8.log; EXIT=1; }
         paver run_pylint -l $PYLINT_THRESHOLD > pylint.log || { cat pylint.log; EXIT=1; }
         # Run quality task. Pass in the 'fail-under' percentage to diff-quality
         paver run_quality -p 100
 
+        mkdir -p reports
+        paver run_complexity > reports/code_complexity.log || echo "Unable to calculate code complexity. Ignoring error."
         # Need to create an empty test result so the post-build
         # action doesn't fail the build.
-        mkdir -p reports
         cat > reports/quality.xml <<END
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuite name="quality" tests="1" errors="0" failures="0" skip="0">
@@ -95,13 +95,13 @@ END
     "unit")
         case "$SHARD" in
             "lms")
-                paver test_system -s lms --extra_args="--with-flaky"
+                paver test_system -s lms --extra_args="--with-flaky" || { EXIT=1; }
                 paver coverage
                 ;;
             "cms-js-commonlib")
-                paver test_system -s cms --extra_args="--with-flaky"
-                paver test_js --coverage --skip_clean
-                paver test_lib --skip_clean --extra_args="--with-flaky"
+                paver test_system -s cms --extra_args="--with-flaky" || { EXIT=1; }
+                paver test_js --coverage --skip_clean || { EXIT=1; }
+                paver test_lib --skip_clean --extra_args="--with-flaky" || { EXIT=1; }
                 paver coverage
                 ;;
             *)
@@ -109,6 +109,8 @@ END
                 paver coverage
                 ;;
         esac
+
+        exit $EXIT
         ;;
 
     "lms-acceptance")
@@ -158,23 +160,23 @@ END
         case "$SHARD" in
 
             "all")
-                paver test_bokchoy
+                paver test_bokchoy || { EXIT=1; }
                 ;;
 
             "1")
-                paver test_bokchoy --extra_args="-a shard_1 --with-flaky"
+                paver test_bokchoy --extra_args="-a shard_1 --with-flaky" || { EXIT=1; }
                 ;;
 
             "2")
-                paver test_bokchoy --extra_args="-a 'shard_2' --with-flaky"
+                paver test_bokchoy --extra_args="-a 'shard_2' --with-flaky" || { EXIT=1; }
                 ;;
 
             "3")
-                paver test_bokchoy --extra_args="-a 'shard_3' --with-flaky"
+                paver test_bokchoy --extra_args="-a 'shard_3' --with-flaky" || { EXIT=1; }
                 ;;
 
             "4")
-                paver test_bokchoy --extra_args="-a shard_1=False,shard_2=False,shard_3=False --with-flaky"
+                paver test_bokchoy --extra_args="-a shard_1=False,shard_2=False,shard_3=False --with-flaky" || { EXIT=1; }
                 ;;
 
             # Default case because if we later define another bok-choy shard on Jenkins
@@ -197,6 +199,15 @@ END
 END
                 ;;
         esac
+
+        # Move the reports to a directory that is unique to the shard
+        # so that when they are 'slurped' to the main flow job, they
+        # do not conflict with and overwrite reports from other shards.
+        mv reports/ reports_tmp/
+        mkdir -p reports/${TEST_SUITE}/${SHARD}
+        mv reports_tmp/* reports/${TEST_SUITE}/${SHARD}
+        rm -r reports_tmp/
+        exit $EXIT
         ;;
 
 esac

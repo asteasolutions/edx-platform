@@ -282,59 +282,6 @@ class UserProfile(models.Model):
         self.set_meta(meta)
         self.save()
 
-    @transaction.commit_on_success
-    def update_name(self, new_name):
-        """Update the user's name, storing the old name in the history.
-
-        Implicitly saves the model.
-        If the new name is not the same as the old name, do nothing.
-
-        Arguments:
-            new_name (unicode): The new full name for the user.
-
-        Returns:
-            None
-
-        """
-        if self.name == new_name:
-            return
-
-        if self.name:
-            meta = self.get_meta()
-            if 'old_names' not in meta:
-                meta['old_names'] = []
-            meta['old_names'].append([self.name, u"", datetime.now(UTC).isoformat()])
-            self.set_meta(meta)
-
-        self.name = new_name
-        self.save()
-
-    @transaction.commit_on_success
-    def update_email(self, new_email):
-        """Update the user's email and save the change in the history.
-
-        Implicitly saves the model.
-        If the new email is the same as the old email, do not update the history.
-
-        Arguments:
-            new_email (unicode): The new email for the user.
-
-        Returns:
-            None
-        """
-        if self.user.email == new_email:
-            return
-
-        meta = self.get_meta()
-        if 'old_emails' not in meta:
-            meta['old_emails'] = []
-        meta['old_emails'].append([self.user.email, datetime.now(UTC).isoformat()])
-        self.set_meta(meta)
-        self.save()
-
-        self.user.email = new_email
-        self.user.save()
-
 
 class UserSignupSource(models.Model):
     """
@@ -1553,3 +1500,43 @@ class LinkedInAddToProfileConfiguration(ConfigurationModel):
             )
             if self.trk_partner_name else None
         )
+
+
+class EntranceExamConfiguration(models.Model):
+    """
+    Represents a Student's entrance exam specific data for a single Course
+    """
+
+    user = models.ForeignKey(User, db_index=True)
+    course_id = CourseKeyField(max_length=255, db_index=True)
+    created = models.DateTimeField(auto_now_add=True, null=True, db_index=True)
+    updated = models.DateTimeField(auto_now=True, db_index=True)
+
+    # if skip_entrance_exam is True, then student can skip entrance exam
+    # for the course
+    skip_entrance_exam = models.BooleanField(default=True)
+
+    class Meta(object):
+        """
+        Meta class to make user and course_id unique in the table
+        """
+        unique_together = (('user', 'course_id'), )
+
+    def __unicode__(self):
+        return "[EntranceExamConfiguration] %s: %s (%s) = %s" % (
+            self.user, self.course_id, self.created, self.skip_entrance_exam
+        )
+
+    @classmethod
+    def user_can_skip_entrance_exam(cls, user, course_key):
+        """
+        Return True if given user can skip entrance exam for given course otherwise False.
+        """
+        can_skip = False
+        if settings.FEATURES.get('ENTRANCE_EXAMS', False):
+            try:
+                record = EntranceExamConfiguration.objects.get(user=user, course_id=course_key)
+                can_skip = record.skip_entrance_exam
+            except EntranceExamConfiguration.DoesNotExist:
+                can_skip = False
+        return can_skip

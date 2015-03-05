@@ -268,15 +268,9 @@ FEATURES = {
     # Hide any Personally Identifiable Information from application logs
     'SQUELCH_PII_IN_LOGS': True,
 
-    # Toggles the embargo functionality, which enable embargoing for particular courses
+    # Toggles the embargo functionality, which blocks users from
+    # the site or courses based on their location.
     'EMBARGO': False,
-
-    # Toggles the embargo site functionality, which enable embargoing for the whole site
-    'SITE_EMBARGOED': False,
-
-    # Toggle whether to replace the current embargo implementation with
-    # the more flexible "country access" feature.
-    'ENABLE_COUNTRY_ACCESS': False,
 
     # Whether the Wiki subsystem should be accessible via the direct /wiki/ paths. Setting this to True means
     # that people can submit content and modify the Wiki in any arbitrary manner. We're leaving this as True in the
@@ -312,9 +306,7 @@ FEATURES = {
     # Expose Mobile REST API. Note that if you use this, you must also set
     # ENABLE_OAUTH2_PROVIDER to True
     'ENABLE_MOBILE_REST_API': False,
-
-    # Enable the new dashboard, account, and profile pages
-    'ENABLE_NEW_DASHBOARD': False,
+    'ENABLE_MOBILE_SOCIAL_FACEBOOK_FEATURES': False,
 
     # Enable the combined login/registration form
     'ENABLE_COMBINED_LOGIN_REGISTRATION': False,
@@ -350,6 +342,9 @@ FEATURES = {
 
     # Courseware search feature
     'ENABLE_COURSEWARE_SEARCH': False,
+
+    # log all information from cybersource callbacks
+    'LOG_POSTPAY_CALLBACKS': True,
 }
 
 # Ignore static asset files on import which match this pattern
@@ -1957,6 +1952,7 @@ ALL_LANGUAGES = (
 ### Apps only installed in some instances
 OPTIONAL_APPS = (
     'mentoring',
+    'edx_sga',
 
     # edx-ora2
     'submissions',
@@ -2050,3 +2046,26 @@ PDF_RECEIPT_COBRAND_LOGO_HEIGHT_MM = 12
 SEARCH_ENGINE = None
 # Use the LMS specific result processor
 SEARCH_RESULT_PROCESSOR = "lms.lib.courseware_search.lms_result_processor.LmsSearchResultProcessor"
+
+# The configuration for learner profiles
+PROFILE_CONFIGURATION = {
+    # Default visibility level for accounts without a specified value
+    # The value is one of: 'all_users', 'private'
+    "default_visibility": 'all_users',
+
+    # The list of all fields that can be shown on a learner's profile
+    "all_fields": [
+        'username',
+        'profile_image',
+        'country',
+        'time_zone',
+        'languages',
+        'bio',
+    ],
+
+    # The list of fields that are always public on a learner's profile
+    "public_fields": [
+        'username',
+        'profile_image',
+    ],
+}

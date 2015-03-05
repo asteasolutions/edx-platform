@@ -230,7 +230,7 @@ class CourseModeViewTest(UrlResetMixin, ModuleStoreTestCase):
 
         self.assertEquals(response.status_code, 200)
 
-        expected_mode = [Mode(u'honor', u'Honor Code Certificate', 0, '', 'usd', None, None)]
+        expected_mode = [Mode(u'honor', u'Honor Code Certificate', 0, '', 'usd', None, None, None)]
         course_mode = CourseMode.modes_for_course(self.course.id)
 
         self.assertEquals(course_mode, expected_mode)
@@ -254,7 +254,7 @@ class CourseModeViewTest(UrlResetMixin, ModuleStoreTestCase):
 
         self.assertEquals(response.status_code, 200)
 
-        expected_mode = [Mode(mode_slug, mode_display_name, min_price, suggested_prices, currency, None, None)]
+        expected_mode = [Mode(mode_slug, mode_display_name, min_price, suggested_prices, currency, None, None, None)]
         course_mode = CourseMode.modes_for_course(self.course.id)
 
         self.assertEquals(course_mode, expected_mode)
@@ -277,8 +277,8 @@ class CourseModeViewTest(UrlResetMixin, ModuleStoreTestCase):
         url = reverse('create_mode', args=[unicode(self.course.id)])
         self.client.get(url, parameters)
 
-        honor_mode = Mode(u'honor', u'Honor Code Certificate', 0, '', 'usd', None, None)
-        verified_mode = Mode(u'verified', u'Verified Certificate', 10, '10,20', 'usd', None, None)
+        honor_mode = Mode(u'honor', u'Honor Code Certificate', 0, '', 'usd', None, None, None)
+        verified_mode = Mode(u'verified', u'Verified Certificate', 10, '10,20', 'usd', None, None, None)
         expected_modes = [honor_mode, verified_mode]
         course_modes = CourseMode.modes_for_course(self.course.id)
 
@@ -289,7 +289,7 @@ class CourseModeViewTest(UrlResetMixin, ModuleStoreTestCase):
 class TrackSelectionEmbargoTest(UrlResetMixin, ModuleStoreTestCase):
     """Test embargo restrictions on the track selection page. """
 
-    @patch.dict(settings.FEATURES, {'ENABLE_COUNTRY_ACCESS': True})
+    @patch.dict(settings.FEATURES, {'EMBARGO': True})
     def setUp(self):
         super(TrackSelectionEmbargoTest, self).setUp('embargo')
 
@@ -305,7 +305,7 @@ class TrackSelectionEmbargoTest(UrlResetMixin, ModuleStoreTestCase):
         # Construct the URL for the track selection page
         self.url = reverse('course_modes_choose', args=[unicode(self.course.id)])
 
-    @patch.dict(settings.FEATURES, {'ENABLE_COUNTRY_ACCESS': True})
+    @patch.dict(settings.FEATURES, {'EMBARGO': True})
     def test_embargo_restrict(self):
         with restrict_course(self.course.id) as redirect_url:
             response = self.client.get(self.url)

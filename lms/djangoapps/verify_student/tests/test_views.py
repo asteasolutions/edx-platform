@@ -13,15 +13,14 @@ from datetime import timedelta, datetime
 import ddt
 from django.test.client import Client
 from django.test import TestCase
-from django.test.utils import override_settings
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.core import mail
 from bs4 import BeautifulSoup
 
-from openedx.core.djangoapps.user_api.api import profile as profile_api
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, mixed_store_config
+from openedx.core.djangoapps.user_api.accounts.views import AccountView
+from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore import ModuleStoreEnum
@@ -74,7 +73,7 @@ class TestPayAndVerifyView(UrlResetMixin, ModuleStoreTestCase):
     YESTERDAY = NOW - timedelta(days=1)
     TOMORROW = NOW + timedelta(days=1)
 
-    @mock.patch.dict(settings.FEATURES, {'ENABLE_COUNTRY_ACCESS': True})
+    @mock.patch.dict(settings.FEATURES, {'EMBARGO': True})
     def setUp(self):
         super(TestPayAndVerifyView, self).setUp('embargo')
         self.user = UserFactory.create(username=self.USERNAME, password=self.PASSWORD)
@@ -625,7 +624,7 @@ class TestPayAndVerifyView(UrlResetMixin, ModuleStoreTestCase):
         self.assertContains(response, "verification deadline")
         self.assertContains(response, "Jan 02, 1999 at 00:00 UTC")
 
-    @mock.patch.dict(settings.FEATURES, {'ENABLE_COUNTRY_ACCESS': True})
+    @mock.patch.dict(settings.FEATURES, {'EMBARGO': True})
     def test_embargo_restrict(self):
         course = self._create_course("verified")
         with restrict_course(course.id) as redirect_url:
@@ -634,7 +633,7 @@ class TestPayAndVerifyView(UrlResetMixin, ModuleStoreTestCase):
             response = self._get_page('verify_student_start_flow', course.id, expected_status_code=302)
             self.assertRedirects(response, redirect_url)
 
-    @mock.patch.dict(settings.FEATURES, {'ENABLE_COUNTRY_ACCESS': True})
+    @mock.patch.dict(settings.FEATURES, {'EMBARGO': True})
     def test_embargo_allow(self):
         course = self._create_course("verified")
         self._get_page('verify_student_start_flow', course.id)
@@ -1057,7 +1056,7 @@ class TestSubmitPhotosForVerification(TestCase):
         self.assertEqual(attempt.status, "submitted")
 
         # Verify that the user's name wasn't changed
-        self._assert_full_name(self.user.profile.name)
+        self._assert_user_name(self.user.profile.name)
 
     def test_submit_photos_and_change_name(self):
         # Submit the photos, along with a name change
@@ -1068,7 +1067,7 @@ class TestSubmitPhotosForVerification(TestCase):
         )
 
         # Check that the user's name was changed in the database
-        self._assert_full_name(self.FULL_NAME)
+        self._assert_user_name(self.FULL_NAME)
 
     @ddt.data('face_image', 'photo_id_image')
     def test_invalid_image_data(self, invalid_param):
@@ -1140,8 +1139,8 @@ class TestSubmitPhotosForVerification(TestCase):
 
         return response
 
-    def _assert_full_name(self, full_name):
-        """Check the user's full name.
+    def _assert_user_name(self, full_name):
+        """Check the user's name.
 
         Arguments:
             full_name (unicode): The user's full name.
@@ -1150,8 +1149,8 @@ class TestSubmitPhotosForVerification(TestCase):
             AssertionError
 
         """
-        info = profile_api.profile_info(self.user.username)
-        self.assertEqual(info['full_name'], full_name)
+        account_settings = AccountView.get_serialized_account(self.user.username)
+        self.assertEqual(account_settings['name'], full_name)
 
 
 class TestPhotoVerificationResultsCallback(ModuleStoreTestCase):
