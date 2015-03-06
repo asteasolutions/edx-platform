@@ -19,7 +19,10 @@ class EdveraOAuth2(BaseOAuth2):
 
     SITE = getattr(settings, 'EDVERA_SITE', DEFAULT_SITE)
 
-    logger.error(settings)
+    #logger.error('baba ti')
+    #logger.error(dir(settings))
+    #for s in dir(settings):
+    #    logger.error(s, ':', getattr(settings, s))
 
     AUTHORIZATION_URL = SITE + 'oauth/authorize'
 
@@ -31,8 +34,10 @@ class EdveraOAuth2(BaseOAuth2):
 
     # The order of the default scope is important
 
-    DEFAULT_SCOPE = ['write', 'public', 'update']
+    DEFAULT_SCOPE = ['public']
 
+    EXTRA_DATA = [('refresh_token', 'refresh_token', True),('expires_in', 'expires'),('token_type', 'token_type', True)]
+    
     def revoke_token_params(self, token, uid):
         return {'token': token}
 
@@ -40,12 +45,15 @@ class EdveraOAuth2(BaseOAuth2):
         return {'Content-type': 'application/json'}
 
     def get_user_id(self, details, response):
+        #logger.error(dir(settings))
         return response.get('user')['id']
 
     def get_user_details(self, response):
         user = response.get('user', {})
         return {'email': user['email'],
                 'fullname': user['first_name'] + ' ' + user['last_name'],
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
                 'username': user['first_name']}
 
     def user_data(self, access_token, *args, **kwargs):

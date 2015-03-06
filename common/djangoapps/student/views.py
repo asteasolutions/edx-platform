@@ -1431,6 +1431,11 @@ def create_account_with_params(request, params):
     # unless originally we didn't get a valid email or name from the external auth
     # TODO: We do not check whether these values meet all necessary criteria, such as email length
     do_external_auth = 'ExternalAuthMap' in request.session
+    AUDIT_LOG.error('request_session: ')
+    keys = request.session.keys()
+    for k in keys:
+        AUDIT_LOG.error("key: " + k)
+        AUDIT_LOG.error(request.session[k])
     if do_external_auth:
         eamap = request.session['ExternalAuthMap']
         try:
@@ -1527,7 +1532,7 @@ def create_account_with_params(request, params):
     # or external auth with bypass activated
     send_email = (
         not settings.FEATURES.get('AUTOMATIC_AUTH_FOR_TESTING') and
-        not (do_external_auth and settings.FEATURES.get('BYPASS_ACTIVATION_EMAIL_FOR_EXTAUTH'))
+        not settings.FEATURES.get('BYPASS_ACTIVATION_EMAIL_FOR_EXTAUTH')
     )
     if send_email:
         from_address = microsite.get_value(
@@ -1557,18 +1562,23 @@ def create_account_with_params(request, params):
     if new_user is not None:
         AUDIT_LOG.info(u"Login success on new account creation - {0}".format(new_user.username))
 
+    AUDIT_LOG.error('baba_ti')
+    AUDIT_LOG.error(do_external_auth)
+    AUDIT_LOG.error(settings.FEATURES.get('BYPASS_ACTIVATION_EMAIL_FOR_EXTAUTH'))
     if do_external_auth:
         eamap.user = new_user
         eamap.dtsignup = datetime.datetime.now(UTC)
         eamap.save()
         AUDIT_LOG.info(u"User registered with external_auth %s", new_user.username)
         AUDIT_LOG.info(u'Updated ExternalAuthMap for %s to be %s', new_user.username, eamap)
-
-        if settings.FEATURES.get('BYPASS_ACTIVATION_EMAIL_FOR_EXTAUTH'):
-            log.info('bypassing activation email')
-            new_user.is_active = True
-            new_user.save()
-            AUDIT_LOG.info(u"Login activated on extauth account - {0} ({1})".format(new_user.username, new_user.email))
+        
+        AUDIT_LOG.error('baba_ti')
+        AUDIT_LOG.error(settings.FEATURES.get('BYPASS_ACTIVATION_EMAIL_FOR_EXTAUTH')) 
+    if settings.FEATURES.get('BYPASS_ACTIVATION_EMAIL_FOR_EXTAUTH'):
+        log.info('bypassing activation email')
+        new_user.is_active = True
+        new_user.save()
+        AUDIT_LOG.info(u"Login activated on extauth account - {0} ({1})".format(new_user.username, new_user.email))
 
 
 def set_marketing_cookie(request, response):

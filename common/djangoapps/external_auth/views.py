@@ -70,7 +70,7 @@ def default_render_failure(request,
                            exception=None):
     """Render an Openid error page to the user"""
 
-    log.debug("In openid_failure " + message)
+    log.error("In openid_failure " + message)
 
     data = render_to_string(template_name,
                             dict(message=message, exception=exception))
@@ -94,7 +94,7 @@ def openid_login_complete(request,
                           redirect_field_name=REDIRECT_FIELD_NAME,
                           render_failure=None):
     """Complete the openid login process"""
-
+    logger.error(openid_login_complete)
     render_failure = (render_failure or default_render_failure)
 
     openid_response = openid_views.parse_openid_response(request)
@@ -135,10 +135,11 @@ def _external_login_or_signup(request,
                               retfun=None):
     """Generic external auth login or signup"""
     # see if we have a map from this external_id to an edX username
+    log.error('external_login')    
     try:
         eamap = ExternalAuthMap.objects.get(external_id=external_id,
                                             external_domain=external_domain)
-        log.debug(u'Found eamap=%s', eamap)
+        log.error(u'Found eamap=%s', eamap)
     except ExternalAuthMap.DoesNotExist:
         # go render form for creating edX user
         eamap = ExternalAuthMap(external_id=external_id,
@@ -282,6 +283,7 @@ def _signup(request, eamap, retfun=None):
     retfun is a function to execute for the return value, if immediate
     signup is used.  That allows @ssl_login_shortcut() to work.
     """
+    log.error('_signup__')
     # save this for use by student.views.create_account
     request.session['ExternalAuthMap'] = eamap
 
@@ -348,6 +350,7 @@ def _ssl_dn_extract_info(dn_string):
     full name from the SSL DN string.  Return (user,email,fullname) if
     successful, and None otherwise.
     """
+    log.error('_ssl_dn')
     ss = re.search('/emailAddress=(.*)@([^/]+)', dn_string)
     if ss:
         user = ss.group(1)
@@ -387,13 +390,14 @@ def ssl_login_shortcut(fn):
     Python function decorator for login procedures, to allow direct login
     based on existing ExternalAuth record and MIT ssl certificate.
     """
+    log.error('ssl_login_shortcut')
     def wrapped(*args, **kwargs):
         """
         This manages the function wrapping, by determining whether to inject
         the _external signup or just continuing to the internal function
         call.
         """
-
+        log.error('wrapped called')
         if not settings.FEATURES['AUTH_USE_CERTIFICATES']:
             return fn(*args, **kwargs)
         request = args[0]
@@ -439,6 +443,7 @@ def ssl_login(request):
 
     Else continues on with student.views.index, and no authentication.
     """
+    log.error('ssl_login')
     # Just to make sure we're calling this only at MIT:
     if not settings.FEATURES['AUTH_USE_CERTIFICATES']:
         return HttpResponseForbidden()
@@ -777,6 +782,7 @@ def provider_login(request):
     """
     OpenID login endpoint
     """
+    log.error('provider_login')
 
     # make and validate endpoint
     endpoint = get_xrds_url('login', request)

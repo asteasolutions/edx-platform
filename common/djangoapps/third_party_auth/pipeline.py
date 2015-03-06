@@ -429,7 +429,13 @@ def running(request):
 
 def parse_query_params(strategy, response, *args, **kwargs):
     """Reads whitelisted query params, transforms them into pipeline args."""
+    #strategy.storage.user.get_social_auth(provider, uid)
+    logger.error('pipeline.parse_query_params')
+    logger.error(strategy)
+    logger.error(args)
+    logger.error(kwargs)
     auth_entry = strategy.session.get(AUTH_ENTRY_KEY)
+    logger.error(auth_entry)
     if not (auth_entry and auth_entry in _AUTH_ENTRY_CHOICES):
         raise AuthEntryError(strategy.backend, 'auth_entry missing or invalid')
 
@@ -470,7 +476,14 @@ def ensure_user_information(
     Ensure that we have the necessary information about a user (either an
     existing account or registration data) to proceed with the pipeline.
     """
-
+    
+    
+    logger.error('ensure_user_information')
+    logger.error(is_login)
+    logger.error(is_register)
+    logger.error(is_login_2)
+    logger.error(is_register_2)
+    logger.error('----')
     # We're deliberately verbose here to make it clear what the intended
     # dispatch behavior is for the various pipeline entry points, given the
     # current state of the pipeline. Keep in mind the pipeline is re-entrant
@@ -484,15 +497,25 @@ def ensure_user_information(
     # invariants have been violated and future misbehavior is likely.
     user_inactive = user and not user.is_active
     user_unset = user is None
+    
+    logger.error(user_inactive)
+    logger.error(user_unset)
 
     dispatch_to_login = (
-        ((is_login or is_login_2) and (user_unset or user_inactive))
-        or
-        ((is_register or is_register_2) and user_inactive)
+        # problematic recent change that prevents automatic linking with EDvera
+        #((is_login or is_login_2) and (user_unset or user_inactive))
+        #or
+        #((is_register or is_register_2) and user_inactive)
+        is_login and (user_unset or user_inactive)
     )
     dispatch_to_register = (is_register or is_register_2) and user_unset
     reject_api_request = is_api and (user_unset or user_inactive)
 
+    logger.error('ensure_user_information end')
+    logger.error(dispatch_to_login)
+    logger.error(dispatch_to_register)
+    logger.error(is_dashboard)
+    logger.error(is_profile)
     if reject_api_request:
         # Content doesn't matter; we just want to exit the pipeline
         return HttpResponseBadRequest()
