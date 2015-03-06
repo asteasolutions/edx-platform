@@ -3,10 +3,6 @@ from social.backends.oauth import BaseOAuth2
 from django.conf import settings
 
 from . import provider
-import logging
-
-logger = logging.getLogger(__name__)
-
 
 class EdveraOAuth2(BaseOAuth2):
     """Edvera authentication backend"""
@@ -19,11 +15,6 @@ class EdveraOAuth2(BaseOAuth2):
 
     SITE = getattr(settings, 'EDVERA_SITE', DEFAULT_SITE)
 
-    #logger.error('baba ti')
-    #logger.error(dir(settings))
-    #for s in dir(settings):
-    #    logger.error(s, ':', getattr(settings, s))
-
     AUTHORIZATION_URL = SITE + 'oauth/authorize'
 
     ACCESS_TOKEN_URL = SITE + 'oauth/token'
@@ -33,7 +24,6 @@ class EdveraOAuth2(BaseOAuth2):
     REVOKE_TOKEN_METHOD = 'POST'
 
     # The order of the default scope is important
-
     DEFAULT_SCOPE = ['public']
 
     EXTRA_DATA = [('refresh_token', 'refresh_token', True),('expires_in', 'expires'),('token_type', 'token_type', True)]
@@ -45,7 +35,6 @@ class EdveraOAuth2(BaseOAuth2):
         return {'Content-type': 'application/json'}
 
     def get_user_id(self, details, response):
-        #logger.error(dir(settings))
         return response.get('user')['id']
 
     def get_user_details(self, response):

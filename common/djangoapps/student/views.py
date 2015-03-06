@@ -1431,11 +1431,6 @@ def create_account_with_params(request, params):
     # unless originally we didn't get a valid email or name from the external auth
     # TODO: We do not check whether these values meet all necessary criteria, such as email length
     do_external_auth = 'ExternalAuthMap' in request.session
-    AUDIT_LOG.error('request_session: ')
-    keys = request.session.keys()
-    for k in keys:
-        AUDIT_LOG.error("key: " + k)
-        AUDIT_LOG.error(request.session[k])
     if do_external_auth:
         eamap = request.session['ExternalAuthMap']
         try:
@@ -1562,18 +1557,13 @@ def create_account_with_params(request, params):
     if new_user is not None:
         AUDIT_LOG.info(u"Login success on new account creation - {0}".format(new_user.username))
 
-    AUDIT_LOG.error('baba_ti')
-    AUDIT_LOG.error(do_external_auth)
-    AUDIT_LOG.error(settings.FEATURES.get('BYPASS_ACTIVATION_EMAIL_FOR_EXTAUTH'))
     if do_external_auth:
         eamap.user = new_user
         eamap.dtsignup = datetime.datetime.now(UTC)
         eamap.save()
         AUDIT_LOG.info(u"User registered with external_auth %s", new_user.username)
         AUDIT_LOG.info(u'Updated ExternalAuthMap for %s to be %s', new_user.username, eamap)
-        
-        AUDIT_LOG.error('baba_ti')
-        AUDIT_LOG.error(settings.FEATURES.get('BYPASS_ACTIVATION_EMAIL_FOR_EXTAUTH')) 
+
     if settings.FEATURES.get('BYPASS_ACTIVATION_EMAIL_FOR_EXTAUTH'):
         log.info('bypassing activation email')
         new_user.is_active = True
