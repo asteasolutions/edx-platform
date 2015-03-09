@@ -2,7 +2,7 @@ from social.backends.oauth import BaseOAuth2
 from django.conf import settings
 from . import provider
 from urlparse import urlparse
-from onelogin import saml
+from onelogin.saml2.response import OneLogin_Saml2_Response
 from social.backends.base import BaseAuth
 
 from logging import getLogger
@@ -57,7 +57,7 @@ class SAMLBaseAuth(BaseAuth):
 
         response = self.strategy.request_data()
 
-        self.saml_response = saml.Response(
+        self.saml_response = OneLogin_Saml2_Response(
             request_info,
             response.get('SAMLResponse'),
             self.setting('IDP_CERT_FINGERPRINT'),
