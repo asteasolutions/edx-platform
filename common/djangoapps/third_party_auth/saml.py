@@ -1,3 +1,6 @@
+from social.backends.oauth import BaseOAuth2
+from django.conf import settings
+from . import provider
 from urlparse import urlparse
 from onelogin import saml
 from social.backends.base import BaseAuth
@@ -70,3 +73,18 @@ class SAMLBaseAuth(BaseAuth):
         })
 
         return self.strategy.authenticate(*args, **kwargs)
+
+class EdveraSamlProvider(provider.BaseProvider):
+    BACKEND_CLASS = SAMLBaseAuth
+    ICON_CLASS = None
+    NAME = 'Saml'
+    SETTINGS = {
+    }
+
+    @classmethod
+    def get_email(cls, provider_details):
+        return provider_details.get('email')
+
+    @classmethod
+    def get_name(cls, provider_details):
+        return provider_details.get('fullname')
