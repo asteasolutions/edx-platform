@@ -13,7 +13,7 @@ class EdveraOAuth2(BaseOAuth2):
 
     DEFAULT_SITE = 'http://wqu-agency.edvera.dev:3000/'
 
-    SITE = getattr(settings, 'EDVERA_SITE', DEFAULT_SITE)
+    SITE = getattr(settings, 'FEATURES', {'EDVERA_SITE': DEFAULT_SITE})['EDVERA_SITE']
 
     AUTHORIZATION_URL = SITE + 'oauth/authorize'
 
