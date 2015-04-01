@@ -133,6 +133,10 @@ def _set_global_settings(django_settings):
 def _set_provider_settings(django_settings, enabled_providers, auth_info):
     """Sets provider-specific settings."""
     # Must prepend here so we get called first.
+
+    #bknds = ( tuple(enabled_provider.get_authentication_backend() for enabled_provider in enabled_providers) + django_settings.AUTHENTICATION_BACKENDS)
+    #django_settings.AUTHENTICATION_BACKENDS = bknds[::-1]
+
     django_settings.AUTHENTICATION_BACKENDS = (
         tuple(enabled_provider.get_authentication_backend() for enabled_provider in enabled_providers) +
         django_settings.AUTHENTICATION_BACKENDS)

@@ -588,6 +588,9 @@ if settings.FEATURES.get('ENABLE_THIRD_PARTY_AUTH'):
         url(r'^login_oauth_token/(?P<backend>[^/]+)/$', 'student.views.login_oauth_token'),
     )
 
+urlpatterns += (
+    url(r'^saml2/', include('django_saml2.urls')),
+)
 
 urlpatterns = patterns(*urlpatterns)
 

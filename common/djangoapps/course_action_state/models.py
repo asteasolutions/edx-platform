@@ -94,6 +94,7 @@ class CourseActionUIState(CourseActionState):
 
     # Message related to the status
     message = models.CharField(max_length=MAX_MESSAGE_LENGTH)
+    
 
 
 # Rerun courses also need these fields. All rerun course actions will have a row here as well.
