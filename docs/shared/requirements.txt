@@ -80,3 +80,5 @@ transifex-client==0.9.1
 -e .
 
 -e git+https://github.com/edx/XBlock.git@b697bebd45deebd0f868613fab6722a0460ca0c1#egg=XBlock
+
+-e git+https://github.com/AnotherFiction/djangosaml2.git#egg=djangosaml2

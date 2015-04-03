@@ -467,7 +467,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 
 # use the ratelimit backend to prevent brute force attacks
 AUTHENTICATION_BACKENDS = (
-    'django_saml2.backends.Saml2Backend',
+    'djangosaml2.backends.Saml2Backend',
     'ratelimitbackend.backends.RateLimitModelBackend',
 )
 STUDENT_FILEUPLOAD_MAX_SIZE = 4 * 1000 * 1000  # 4 MB
@@ -1637,7 +1637,7 @@ INSTALLED_APPS = (
     'course_structure_api',
 
     # edvera django saml2
-    'django_saml2',
+    'djangosaml2',
 )
 
 ######################### MARKETING SITE ###############################

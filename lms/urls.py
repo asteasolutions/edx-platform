@@ -589,7 +589,7 @@ if settings.FEATURES.get('ENABLE_THIRD_PARTY_AUTH'):
     )
 
 urlpatterns += (
-    url(r'^saml2/', include('django_saml2.urls')),
+    url(r'^saml2/', include('djangosaml2.urls')),
 )
 
 urlpatterns = patterns(*urlpatterns)
